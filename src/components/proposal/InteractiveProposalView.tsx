@@ -31,6 +31,7 @@ import {
   HelpCircle,
   ExternalLink,
   ArrowUpRight,
+  X,
 } from "lucide-react";
 
 interface InteractiveProposalViewProps {
@@ -249,6 +250,15 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
       setIsSubmitting(false);
     }
   };
+
+  const [detailModalItem, setDetailModalItem] = useState<{
+    title?: string;
+    name?: string;
+    image?: string;
+    description: string;
+    details?: string;
+    brand?: string;
+  } | null>(null);
 
   const activeGalleryImages = useMemo(() => {
     if (proposal.galleryImages && proposal.galleryImages.length > 0) {
@@ -980,6 +990,103 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
         </section>
 
         {/* ========================================================================= */}
+        {/* SECTION — WHAT'S INCLUDED */}
+        {/* ========================================================================= */}
+        <section id="section-whats-included" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 font-sans antialiased">
+          {/* Top Header Row */}
+          <div className="flex items-center justify-between -mx-8 sm:-mx-12 -mt-4 mb-2">
+            <div
+              className="text-white font-bold text-xs px-5 py-2 rounded-r-full shadow-sm tracking-wider uppercase"
+              style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+            >
+              What's Included
+            </div>
+
+            <div className="flex items-center gap-2 pr-8 sm:pr-12">
+              {!logoError && branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl}
+                  alt={branding.companyName}
+                  onError={() => setLogoError(true)}
+                  className="h-8 max-w-[160px] object-contain"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm"
+                    style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+                  >
+                    <Zap className="w-4 h-4 fill-current" />
+                  </div>
+                  <span className="text-base font-black tracking-wider text-slate-900 dark:text-slate-50 uppercase">
+                    {branding.companyName}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 3 Feature Cards */}
+          <div className="space-y-4 pt-2">
+            {[
+              {
+                id: "inc-bird",
+                title: "Bird Protection",
+                image: "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=600&q=80",
+                description:
+                  "As standard, we protect your solar investment and your roof by adding Bird Protection to your solar system, at no extra cost. Nesting birds can cause serious damage to panels, wiring, and roofing over time leading to costly repairs and reduced system efficiency. Our discreet and durable bird-proofing solutions keep pests away and keep your installation working at peak performance.",
+                details:
+                  "High-grade stainless steel & UV-stabilized polycarbonate mesh installed around the full array perimeter to prevent pigeons, seagulls, and nesting birds from damaging cables or roof tiles without voiding panel warranties.",
+              },
+              {
+                id: "inc-scaffold",
+                title: "Scaffolding",
+                image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=600&q=80",
+                description:
+                  "Scaffolding is often required for a solar installation to provide safe and stable access to the roof for installers working at height. It helps protect both the workers and the property by reducing the risk of falls, allowing equipment and panels to be moved securely, and ensuring the installation can be completed efficiently and in full compliance with HSE safety regulations.",
+                details:
+                  "Erected by TG20:21 compliant certified scaffolders 24-48 hours before installation, fully inspected with handrails and toe-boards, and promptly dismantled following commissioning.",
+              },
+              {
+                id: "inc-cert",
+                title: "All Necessary Certification",
+                image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=600&q=80",
+                description:
+                  "All necessary MCS certification, Consumer Code documentation, and DNO notification or approval paperwork are included as part of a solar installation. This ensures the system is installed to recognised industry standards, fully compliant with current regulations, and supported with the correct documentation required for insurance, building control, and Smart Export Guarantee (SEG) export payments.",
+                details:
+                  "Complete handover pack including MCS 001/012 Certificate, G98/G99 DNO Grid Approval, NAPIT Part-P Electrical Compliance, HIES Insurance-Backed Guarantee, and 25-Year Manufacturer Warranty documents.",
+              },
+            ].map((item, idx) => (
+              <div
+                key={item.id || idx}
+                className="p-5 sm:p-6 rounded-2xl border border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/10 dark:border-emerald-500/20 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-5 hover:border-emerald-500/50 transition-all"
+              >
+                <div className="w-full sm:w-44 h-32 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0 shadow-inner">
+                  <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1 space-y-2 min-w-0">
+                  <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-slate-100">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3">
+                    {item.description}
+                  </p>
+                  <div className="pt-1 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setDetailModalItem(item)}
+                      className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                    >
+                      Click for more details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
         {/* SECTION 5 — SYSTEM HARDWARE */}
         {/* ========================================================================= */}
         <section id="section-hardware" className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-6 sm:p-10 shadow-sm space-y-6">
@@ -1313,158 +1420,418 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 20 — OPTIONAL PRODUCTS / EXTRAS */}
+        {/* SECTION — ADD AN EV CHARGER */}
         {/* ========================================================================= */}
-        <section id="section-options" className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-sm space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Optional System Upgrades</h2>
-            <p className="text-xs text-slate-500">Select optional additions to customize your system</p>
-          </div>
+        <section id="section-ev-charger" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 font-sans antialiased">
+          {/* Top Header Row */}
+          <div className="flex items-center justify-between -mx-8 sm:-mx-12 -mt-4 mb-2">
+            <div
+              className="text-white font-bold text-xs px-5 py-2 rounded-r-full shadow-sm tracking-wider uppercase"
+              style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+            >
+              Add an EV?
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {productsState
-              .filter((p) => p.category === "optional")
-              .map((p) => (
-                <div
-                  key={p.id}
-                  className={`p-6 rounded-2xl border transition-all flex flex-col justify-between gap-4 ${
-                    p.included ? "bg-emerald-50/50 border-emerald-500 shadow-sm" : "bg-slate-50 border-slate-200"
-                  }`}
-                >
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-bold text-slate-900 text-sm">{p.name}</h3>
-                      <span className="text-sm font-extrabold text-slate-900">£{p.price}</span>
-                    </div>
-                    <p className="text-xs text-slate-500 leading-relaxed">{p.description}</p>
-                  </div>
-
-                  <button
-                    onClick={() => toggleProduct(p.id)}
-                    className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                      p.included ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-100"
-                    }`}
+            <div className="flex items-center gap-2 pr-8 sm:pr-12">
+              {!logoError && branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl}
+                  alt={branding.companyName}
+                  onError={() => setLogoError(true)}
+                  className="h-8 max-w-[160px] object-contain"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm"
+                    style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
                   >
-                    {p.included ? (
-                      <>
-                        <Check className="w-4 h-4" />
-                        <span>Included in Quote</span>
-                      </>
-                    ) : (
-                      <>
-                        <PlusCircle className="w-4 h-4 text-emerald-600" />
-                        <span>Add to Proposal (+£{p.price})</span>
-                      </>
-                    )}
-                  </button>
+                    <Zap className="w-4 h-4 fill-current" />
+                  </div>
+                  <span className="text-base font-black tracking-wider text-slate-900 dark:text-slate-50 uppercase">
+                    {branding.companyName}
+                  </span>
                 </div>
-              ))}
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* SECTION 21 — ADD AN EV CHARGER? */}
-        {/* ========================================================================= */}
-        <section className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-sm space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-sky-100 text-sky-700">
-                <Car className="w-6 h-6" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">Add an Electric Vehicle Charger?</h2>
-                <p className="text-xs text-slate-500">Integrate 7kW smart EV charging powered directly by your solar panels</p>
-              </div>
+              )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {productsState
-              .filter((p) => p.category === "ev")
-              .map((charger) => {
-                const isSelected = selectedEvId === charger.id;
-                return (
-                  <div
-                    key={charger.id}
-                    className={`p-5 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
-                      isSelected ? "bg-sky-50 border-sky-500 shadow-md ring-2 ring-sky-500/20" : "bg-slate-50 border-slate-200"
-                    }`}
-                  >
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-sm">{charger.name}</h3>
-                      <p className="text-xs text-slate-500 mt-1">{charger.description}</p>
-                      <p className="text-base font-extrabold text-slate-900 mt-2">£{charger.price}</p>
+          <div className="pt-1">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight leading-tight">
+              Add an EV Charger?
+            </h2>
+          </div>
+
+          <div className="space-y-6 pt-2">
+            {[
+              {
+                id: "ev-sigenergy",
+                brand: "SIGENERGY",
+                name: "EV AC Charger",
+                price: 1250,
+                image: "https://images.unsplash.com/photo-1558441719-8b449c6ff8ff?auto=format&fit=crop&w=600&q=80",
+                description:
+                  "With Sigen EV AC Charger, you can confidently use solar energy to power your electric vehicle. Use our fast home EV charging to optimize energy savings, embrace green technology, and enjoy a smarter charging experience. Seamlessly synchronized with SigenStor, it provides 100% green energy for your EV.",
+                details:
+                  "7.4kW single-phase fast charger with IP65 weather rating, integrated solar tracking surge mode, RFID authentication, dynamic load balancing, and automated low-rate off-peak charging schedules.",
+              },
+              {
+                id: "ev-hanchu",
+                brand: "HANCHU ESS",
+                name: "Hanchu EV Charge HC 7KW (T)",
+                price: 1250,
+                image: "https://images.unsplash.com/photo-1548611635-b6e7827d7d4a?auto=format&fit=crop&w=600&q=80",
+                description:
+                  "The Hanchu HC-EV-AC-07K EV Charger is a smart, 7kW single-phase charging solution designed for modern electric vehicle owners. It offers versatile charging options, including app control, RFID, and plug-and-play functionality, ensuring a seamless user experience. With advanced safety features like Type A + DC 6mA fault protection.",
+                details:
+                  "7kW tethered Type 2 cable with PEN fault protection (no earth rod needed), integrated solar diverter mode, real-time energy metering via mobile app, and 3-year warranty.",
+              },
+              {
+                id: "ev-duracell",
+                brand: "DURACELL ENERGY",
+                name: "Duracharger 7kW",
+                price: 1250,
+                image: "https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=600&q=80",
+                description:
+                  "Introducing the DURACELL EV Charger—a cutting-edge solution for efficient and eco-friendly electric vehicle charging. Designed to harness free solar energy, it ensures your vehicle is powered by the cleanest, most cost-effective electricity available. Seamlessly integrating with DURACELL Energy's battery systems.",
+                details:
+                  "Smart 7.4kW dual-socket / tethered options, OCPP 1.6J compliant for smart energy tariffs (Octopus Intelligent, OVO Charge Anywhere), and 3-year British warranty.",
+              },
+              {
+                id: "ev-foxess",
+                brand: "FOX ESS",
+                name: "Fox ESS 7kW EV Charger",
+                price: 1250,
+                image: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&w=600&q=80",
+                description:
+                  "The AC EV Charger boasts a streamlined design that is simple yet elegant, compact, intelligent, and easy to use. Engineered to work in tandem with Fox ESS hybrid inverters to maximize self-consumption of surplus rooftop solar.",
+                details:
+                  "7.3kW wall-mounted AC charger with Wi-Fi / Bluetooth control, RFID tags, solar export matching, and automated overnight cheap-rate scheduling.",
+              },
+            ].map((ev) => {
+              const isIncluded = selectedEvId === ev.id;
+
+              return (
+                <div key={ev.id} className="space-y-2">
+                  <div className="p-5 sm:p-6 rounded-2xl border border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/10 dark:border-emerald-500/20 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-5 hover:border-emerald-500/50 transition-all">
+                    <div className="w-full sm:w-44 h-36 rounded-xl overflow-hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 flex items-center justify-center shrink-0 shadow-inner">
+                      <img src={ev.image} alt={ev.name} className="max-h-full max-w-full object-contain" />
+                    </div>
+                    <div className="flex-1 space-y-1.5 min-w-0">
+                      <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-mono">
+                        {ev.brand}
+                      </span>
+                      <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-slate-100">
+                        {ev.name}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3">
+                        {ev.description}
+                      </p>
+                      <div className="pt-1 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setDetailModalItem(ev)}
+                          className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                        >
+                          Click for more details
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-4 px-2">
+                    <div className="text-right">
+                      <span className="text-[9px] text-slate-400 font-bold block leading-none">Total</span>
+                      <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100 font-mono">
+                        £{ev.price.toLocaleString()}
+                      </span>
+                      <span className="text-[9px] text-slate-400 block leading-none">NO VAT</span>
                     </div>
 
-                    <button
-                      onClick={() => handleEvSelect(charger.id)}
-                      className={`w-full py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                        isSelected ? "bg-sky-600 text-white hover:bg-sky-700" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      {isSelected ? (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Selected</span>
-                        </>
-                      ) : (
-                        <span>Select (+£{charger.price})</span>
-                      )}
-                    </button>
+                    <div className="inline-flex rounded-full p-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                      <button
+                        type="button"
+                        onClick={() => handleEvSelect(ev.id)}
+                        className={`px-4 py-1.5 rounded-full transition-all ${
+                          isIncluded
+                            ? "bg-emerald-500 text-white shadow-sm font-black"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                        }`}
+                      >
+                        Include
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isIncluded) handleEvSelect(ev.id);
+                        }}
+                        className={`px-4 py-1.5 rounded-full transition-all ${
+                          !isIncluded
+                            ? "bg-emerald-500 text-white shadow-sm font-black"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                        }`}
+                      >
+                        Exclude
+                      </button>
+                    </div>
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 22 — ADDITIONAL PRODUCTS */}
+        {/* SECTION — EXTRA PRODUCTS */}
         {/* ========================================================================= */}
-        <section className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-sm space-y-6">
-          <h2 className="text-xl font-bold text-slate-900">Additional System Hardware</h2>
+        <section id="section-options" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 font-sans antialiased">
+          {/* Top Header Row */}
+          <div className="flex items-center justify-between -mx-8 sm:-mx-12 -mt-4 mb-2">
+            <div
+              className="text-white font-bold text-xs px-5 py-2 rounded-r-full shadow-sm tracking-wider uppercase"
+              style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+            >
+              Extra products
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {productsState
-              .filter((p) => p.category === "additional")
-              .map((p) => (
-                <div key={p.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center">
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-xs">{p.name}</h3>
-                    <p className="text-[11px] text-slate-500">{p.description}</p>
-                  </div>
-                  <button
-                    onClick={() => toggleProduct(p.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      p.included ? "bg-emerald-600 text-white" : "bg-white border text-slate-700"
-                    }`}
+            <div className="flex items-center gap-2 pr-8 sm:pr-12">
+              {!logoError && branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl}
+                  alt={branding.companyName}
+                  onError={() => setLogoError(true)}
+                  className="h-8 max-w-[160px] object-contain"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm"
+                    style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
                   >
-                    {p.included ? "Included" : `Add £${p.price}`}
-                  </button>
+                    <Zap className="w-4 h-4 fill-current" />
+                  </div>
+                  <span className="text-base font-black tracking-wider text-slate-900 dark:text-slate-50 uppercase">
+                    {branding.companyName}
+                  </span>
                 </div>
-              ))}
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-6 pt-2">
+            {[
+              {
+                id: "ext-hanchu-m1",
+                brand: "HANCHU ESS",
+                name: "Hanchu ESS Gateway M1",
+                price: 1750,
+                image: "https://images.unsplash.com/photo-1548611635-b6e7827d7d4a?auto=format&fit=crop&w=600&q=80",
+                description:
+                  "Take control of your home energy system with the Hanchu Gateway M1—a robust, single-phase manual changeover switch designed to seamlessly manage power between the grid, solar, batteries, EV chargers, and backup generators. Ideal for households seeking energy resilience, the M1 allows manual switching.",
+                details:
+                  "Full automatic/manual grid outage isolation, 20ms seamless UPS transfer for critical domestic circuits (lighting, refrigeration, medical, internet), and smart generator interface.",
+              },
+              {
+                id: "ext-sigenergy-gateway",
+                brand: "SIGENERGY",
+                name: "SigEnergy HomePro Backup Gateway",
+                price: 1750,
+                image: "https://images.unsplash.com/photo-1558441719-8b449c6ff8ff?auto=format&fit=crop&w=600&q=80",
+                description:
+                  "The HomePro Gateway by Sigen Energy (aka SigEnergy) is an intelligent energy management gateway / switchgear device that integrates solar PV, battery energy storage (ESS), grid supply, and optional generator support. It's designed to give homeowners seamless backup power, clean integration of multiple sources.",
+                details:
+                  "Whole-home microgrid management, sub-5ms uninterruptible power supply (UPS) transfer, built-in intelligent sub-panel load shedding, and integrated revenue-grade meter.",
+              },
+              {
+                id: "ext-fox-eps",
+                brand: "FOX ESS",
+                name: "Fox EPS Backup Gateway",
+                price: 1750,
+                image: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&w=600&q=80",
+                description:
+                  "The Fox ESS Backup Gateway (model EPS-BOX-SF) is a single-phase whole-home backup solution that automatically isolates your property from the grid during power outages and switches your supply to your solar and battery system.",
+                details:
+                  "Automated contactor isolation compliant with G98/G99 emergency backup regulations, ensuring zero back-feed to the grid while supplying uninterrupted household power.",
+              },
+              {
+                id: "ext-tigo-optimisers",
+                brand: "TIGO",
+                name: "TS4 Optimiser",
+                price: 360,
+                image: "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=600&q=80",
+                description:
+                  "The TS4-A-O is an advanced retrofit optimization solution designed to enhance energy efficiency in PV systems. It brings smart module functionality to standard solar panels, supporting up to 500W modules. Key features include module-level optimization for higher energy yield, greater design flexibility, and both panel-level monitoring and rapid shutdown.",
+                details:
+                  "Selective deployment (install only on shaded panels), increases total system yield by up to 25% on complex roof geometries, and includes 25-year manufacturer warranty.",
+              },
+              {
+                id: "ext-workmanship-warranty",
+                brand: "MADOLA ENERGY",
+                name: "Extended Workmanship Warranty",
+                price: 450,
+                image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=600&q=80",
+                description:
+                  "Enjoy added peace of mind with our Extended Workmanship Warranty, providing additional protection for your solar installation beyond the standard cover. It's our commitment to the quality of our workmanship and your long-term confidence in your system.",
+                details:
+                  "Extends on-site labour, roof fixing integrity, electrical cabling, and emergency callout protection to a full 10/25 years, fully backed by HIES insurance.",
+              },
+            ].map((prod) => {
+              const matchedState = productsState.find((p) => p.id === prod.id || p.name === prod.name);
+              const isIncluded = matchedState ? matchedState.included : false;
+
+              return (
+                <div key={prod.id} className="space-y-2">
+                  <div className="p-5 sm:p-6 rounded-2xl border border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/10 dark:border-emerald-500/20 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-5 hover:border-emerald-500/50 transition-all">
+                    <div className="w-full sm:w-44 h-36 rounded-xl overflow-hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 flex items-center justify-center shrink-0 shadow-inner">
+                      <img src={prod.image} alt={prod.name} className="max-h-full max-w-full object-contain" />
+                    </div>
+                    <div className="flex-1 space-y-1.5 min-w-0">
+                      <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-mono">
+                        {prod.brand}
+                      </span>
+                      <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-slate-100">
+                        {prod.name}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3">
+                        {prod.description}
+                      </p>
+                      <div className="pt-1 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setDetailModalItem(prod)}
+                          className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                        >
+                          Click for more details
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-4 px-2">
+                    <div className="text-right">
+                      <span className="text-[9px] text-slate-400 font-bold block leading-none">Total</span>
+                      <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100 font-mono">
+                        £{prod.price.toLocaleString()}
+                      </span>
+                      <span className="text-[9px] text-slate-400 block leading-none">NO VAT</span>
+                    </div>
+
+                    <div className="inline-flex rounded-full p-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!isIncluded) toggleProduct(prod.id);
+                        }}
+                        className={`px-4 py-1.5 rounded-full transition-all ${
+                          isIncluded
+                            ? "bg-emerald-500 text-white shadow-sm font-black"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                        }`}
+                      >
+                        Include
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isIncluded) toggleProduct(prod.id);
+                        }}
+                        className={`px-4 py-1.5 rounded-full transition-all ${
+                          !isIncluded
+                            ? "bg-emerald-500 text-white shadow-sm font-black"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                        }`}
+                      >
+                        Exclude
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 23 — NEXT STEPS */}
+        {/* SECTION — NEXT STEPS */}
         {/* ========================================================================= */}
-        <section className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-sm space-y-6">
-          <h2 className="text-xl font-bold text-slate-900">Your 5-Step Installation Timeline</h2>
+        <section id="section-notes" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 font-sans antialiased">
+          {/* Top Header Row */}
+          <div className="flex items-center justify-between -mx-8 sm:-mx-12 -mt-4 mb-2">
+            <div
+              className="text-white font-bold text-xs px-5 py-2 rounded-r-full shadow-sm tracking-wider uppercase"
+              style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+            >
+              Text
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-            {[
-              { step: 1, title: "Survey & Design", desc: "Detailed technical site survey & DNO approval." },
-              { step: 2, title: "Deposit & Schedule", desc: "Accept proposal & schedule installation date." },
-              { step: 3, title: "Installation", desc: "1-day expert mounting & electrical wiring." },
-              { step: 4, title: "Completion", desc: "Testing, commissioning & MCS certification." },
-              { step: 5, title: "Aftercare", desc: "App monitoring setup & ongoing support." },
-            ].map((st) => (
-              <div key={st.step} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-center">
-                <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-extrabold text-xs mx-auto flex items-center justify-center">
-                  {st.step}
+            <div className="flex items-center gap-2 pr-8 sm:pr-12">
+              {!logoError && branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl}
+                  alt={branding.companyName}
+                  onError={() => setLogoError(true)}
+                  className="h-8 max-w-[160px] object-contain"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm"
+                    style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+                  >
+                    <Zap className="w-4 h-4 fill-current" />
+                  </div>
+                  <span className="text-base font-black tracking-wider text-slate-900 dark:text-slate-50 uppercase">
+                    {branding.companyName}
+                  </span>
                 </div>
-                <h3 className="font-bold text-slate-900 text-xs">{st.title}</h3>
-                <p className="text-[11px] text-slate-500 leading-tight">{st.desc}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-1">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight leading-tight">
+              Next Steps
+            </h2>
+          </div>
+
+          <div className="space-y-4 pt-2">
+            {[
+              {
+                stepNum: 1,
+                title: "Survey and design",
+                desc: "Our surveyor checks your roof structure, electrics and access, and we finalise your design and your price. You're assigned a project coordinator who stays with you from here to handover — one name and one number throughout. Nothing to pay at this stage.",
+              },
+              {
+                stepNum: 2,
+                title: "Deposit and scheduling",
+                desc: "With the design agreed we take 25%, protected under our HIES insurance-backed guarantee. We apply to your network operator for grid approval and book your scaffold and install dates. Grid approval is what sets your timeline, so we start it the day the design is signed off.",
+              },
+              {
+                stepNum: 3,
+                title: "Installation",
+                desc: "Scaffold goes up, the system goes in, and we test and commission it. Most homes are done in one to two days. Your power is off for under two hours while we connect to the consumer unit, agreed with you in advance.",
+              },
+              {
+                stepNum: 4,
+                title: "Completion",
+                desc: "The remaining 75% falls due once the system is live. We issue your MCS certificate, register the electrical work with building control under our NAPIT registration, set up your monitoring app and hand over your documentation pack.",
+              },
+              {
+                stepNum: 5,
+                title: "Aftercare",
+                desc: "Two jobs are yours: tell your home insurer the panels are on, as they now form part of the building, and apply to your energy supplier for a Smart Export Guarantee tariff. We'll point you at the best rates. Everything else is ours — MCS registration, network operator sign-off, building control, manufacturer warranty registration and scaffold removal. Your coordinator stays with you through your first bill.",
+              },
+            ].map((st, idx) => (
+              <div key={idx} className="flex items-start gap-3 text-xs sm:text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+                <span className="font-bold text-slate-900 dark:text-slate-100 min-w-[20px]">
+                  {st.stepNum}.
+                </span>
+                <div>
+                  <strong className="font-extrabold text-slate-900 dark:text-slate-100">
+                    {st.title} —{" "}
+                  </strong>
+                  <span>{st.desc}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -1729,6 +2096,58 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
           <p>© {new Date().getFullYear()} Madola Energy Ltd. All rights reserved. MCS Accredited UK Installer.</p>
         </div>
       </footer>
+
+      {/* Details Popup Modal */}
+      {detailModalItem && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setDetailModalItem(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                {detailModalItem.brand && (
+                  <span className="text-[10px] font-mono font-bold text-emerald-600 uppercase">{detailModalItem.brand}</span>
+                )}
+                <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-50">
+                  {detailModalItem.title || detailModalItem.name}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDetailModalItem(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {detailModalItem.image && (
+              <div className="h-44 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 p-2 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                <img
+                  src={detailModalItem.image}
+                  alt={detailModalItem.title || detailModalItem.name}
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+            )}
+
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              {detailModalItem.description}
+            </p>
+
+            {detailModalItem.details && (
+              <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-200 flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span>{detailModalItem.details}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
