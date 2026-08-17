@@ -58,49 +58,36 @@ export default function NewProposalPage() {
 
     setIsUploading(true);
     setErrorMessage(null);
-    setUploadStep("Extracting OpenSolar proposal data directly in browser...");
+    setUploadStep("Uploading PDF & extracting OpenSolar proposal data...");
 
     try {
-      // 1. Primary: Instant In-Browser Client PDF Parsing (0 server overhead, 0 payload limits)
-      const { parsePdfInBrowser } = await import("@/lib/services/clientPdfExtractor");
-      let extraction = await parsePdfInBrowser(file);
+      const formData = new FormData();
+      formData.append("file", file);
 
-      // 2. Fallback to API route if client-parsed text is incomplete
-      if (!extraction || (!extraction.customerName?.value && !extraction.systemPricePounds?.value)) {
-        setUploadStep("Processing PDF on server...");
-        try {
-          const formData = new FormData();
-          formData.append("file", file);
-          const response = await fetch("/api/extract-pdf", {
-            method: "POST",
-            body: formData,
-          });
-          const res = await response.json();
-          if (response.ok && res.success && res.extraction) {
-            extraction = res.extraction;
-          }
-        } catch (apiErr) {
-          console.warn("API route extraction fallback notice:", apiErr);
-        }
-      }
+      const response = await fetch("/api/extract-pdf", {
+        method: "POST",
+        body: formData,
+      });
 
-      if (!extraction) {
+      const res = await response.json();
+
+      if (!response.ok || !res.success || !res.extraction) {
         setIsUploading(false);
-        setErrorMessage("Could not extract data from OpenSolar PDF file.");
+        setErrorMessage(`Extraction Failed: ${res.error || "Could not extract data from OpenSolar PDF."}`);
         return;
       }
 
-      // 3. Synchronize customer profile
+      // Synchronize customer profile
       setUploadStep("Data extracted! Synchronizing customer profile...");
       try {
         const { autoCreateCustomerFromExtraction } = await import("@/lib/repositories/customerRepository");
-        await autoCreateCustomerFromExtraction(extraction);
+        await autoCreateCustomerFromExtraction(res.extraction);
       } catch (custErr) {
         console.warn("Auto customer creation notice:", custErr);
       }
 
       setUploadStep("Extraction complete!");
-      setExtractionResult(extraction);
+      setExtractionResult(res.extraction);
     } catch (err: any) {
       console.error("PDF upload handler error:", err);
       setErrorMessage(`Upload Error: ${err.message || "Failed to process OpenSolar PDF."}`);
