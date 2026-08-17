@@ -1087,126 +1087,409 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 5 — SYSTEM HARDWARE */}
         {/* ========================================================================= */}
-        <section id="section-hardware" className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-6 sm:p-10 shadow-sm space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">System Hardware Highlights</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Premium MCS-certified components specified for long-term durability</p>
+        {/* SECTION — PRODUCT HIGHLIGHTS */}
+        {/* ========================================================================= */}
+        <section id="section-product-highlights" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 font-sans antialiased">
+          {/* Top Header Row */}
+          <div className="flex items-center justify-between -mx-8 sm:-mx-12 -mt-4 mb-2">
+            <div
+              className="text-white font-bold text-xs px-5 py-2 rounded-r-full shadow-sm tracking-wider uppercase"
+              style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+            >
+              Product Highlights
+            </div>
+
+            <div className="flex items-center gap-2 pr-8 sm:pr-12">
+              {!logoError && branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl}
+                  alt={branding.companyName}
+                  onError={() => setLogoError(true)}
+                  className="h-8 max-w-[160px] object-contain"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm"
+                    style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+                  >
+                    <Zap className="w-4 h-4 fill-current" />
+                  </div>
+                  <span className="text-base font-black tracking-wider text-slate-900 dark:text-slate-50 uppercase">
+                    {branding.companyName}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Panels */}
-            <div className="madola-card madola-card-hover p-6 rounded-2xl bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="inline-flex p-3 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                  <Sun className="w-6 h-6 fill-amber-400" />
-                </div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{proposal.system.panelManufacturer}</h3>
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{proposal.system.panelModel}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  High efficiency N-Type TOPCon panels engineered for optimal performance in UK light conditions.
-                </p>
+          <div className="pt-1">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight leading-tight">
+              Product highlights
+            </h2>
+          </div>
+
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            The system features a <strong className="text-slate-900 dark:text-slate-100 font-bold">{proposal.system.batteryManufacturer} {proposal.system.batteryModel} [{proposal.system.batteryWarranty}]</strong> battery with a maximum charge power of 512 and an efficiency factor of 0.9. The <strong className="text-slate-900 dark:text-slate-100 font-bold">{proposal.system.inverterManufacturer} {proposal.system.inverterModel}</strong> inverter ensures efficient power conversion. The <strong className="text-slate-900 dark:text-slate-100 font-bold">{proposal.system.panelManufacturer} {proposal.system.panelModel} [15 Years]</strong> solar panels are known for their durability and performance.
+          </p>
+
+          <div className="space-y-4 pt-2">
+            {/* 1. Battery Card */}
+            <div className="p-5 sm:p-6 rounded-2xl border border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/10 dark:border-emerald-500/20 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-5 hover:border-emerald-500/50 transition-all">
+              <div className="w-full sm:w-44 h-32 rounded-xl overflow-hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0 p-2 flex items-center justify-center shadow-inner">
+                <img
+                  src="https://images.unsplash.com/photo-1548611635-b6e7827d7d4a?auto=format&fit=crop&w=600&q=80"
+                  alt={proposal.system.batteryModel}
+                  className="max-h-full max-w-full object-contain"
+                />
               </div>
-              <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between text-xs text-slate-600 dark:text-slate-300 font-bold">
-                <span>Warranty</span>
-                <span className="text-emerald-600 dark:text-emerald-400">25 Years</span>
+              <div className="flex-1 space-y-2 min-w-0">
+                <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-slate-100">
+                  {proposal.system.batteryModel} [{proposal.system.batteryWarranty}]
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">
+                  {proposal.system.batteryCapacityKwh} kWh Usable storage capacity • Cobalt-free LFP chemistry • 6,000+ cycle warranty
+                </p>
+                <div className="pt-1 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDetailModalItem({
+                        brand: proposal.system.batteryManufacturer,
+                        title: `${proposal.system.batteryModel} [${proposal.system.batteryWarranty}]`,
+                        image: "https://images.unsplash.com/photo-1548611635-b6e7827d7d4a?auto=format&fit=crop&w=600&q=80",
+                        description: `The ${proposal.system.batteryManufacturer} ${proposal.system.batteryModel} is a modular high-voltage/low-voltage lithium energy storage system designed for maximum household energy self-reliance and EPS emergency backup.`,
+                        details: `${proposal.system.batteryCapacityKwh} kWh capacity with ${proposal.system.batteryWarranty} product & performance guarantee.`,
+                      })
+                    }
+                    className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                  >
+                    Click for more details
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Inverter */}
-            <div className="madola-card madola-card-hover p-6 rounded-2xl bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="inline-flex p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <Zap className="w-6 h-6" />
-                </div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{proposal.system.inverterManufacturer}</h3>
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{proposal.system.inverterModel}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Bespoke hybrid inverter with EPS emergency backup capability and dual MPPT tracking.
-                </p>
+            {/* 2. Inverter Card */}
+            <div className="p-5 sm:p-6 rounded-2xl border border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/10 dark:border-emerald-500/20 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-5 hover:border-emerald-500/50 transition-all">
+              <div className="w-full sm:w-44 h-32 rounded-xl overflow-hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0 p-2 flex items-center justify-center shadow-inner">
+                <img
+                  src="https://images.unsplash.com/photo-1558441719-8b449c6ff8ff?auto=format&fit=crop&w=600&q=80"
+                  alt={proposal.system.inverterModel}
+                  className="max-h-full max-w-full object-contain"
+                />
               </div>
-              <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between text-xs text-slate-600 dark:text-slate-300 font-bold">
-                <span>Warranty</span>
-                <span className="text-emerald-600 dark:text-emerald-400">{proposal.system.inverterWarranty}</span>
+              <div className="flex-1 space-y-2 min-w-0">
+                <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-slate-100">
+                  {proposal.system.inverterModel}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">
+                  {proposal.system.inverterCapacityKw} kW Hybrid Inverter with Dual MPPT • Emergency Power Supply (EPS) • Wi-Fi Smart App
+                </p>
+                <div className="pt-1 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDetailModalItem({
+                        brand: proposal.system.inverterManufacturer,
+                        title: proposal.system.inverterModel,
+                        image: "https://images.unsplash.com/photo-1558441719-8b449c6ff8ff?auto=format&fit=crop&w=600&q=80",
+                        description: `The ${proposal.system.inverterManufacturer} ${proposal.system.inverterModel} intelligently controls power flows between solar panels, battery storage, home circuits, and the National Grid.`,
+                        details: `${proposal.system.inverterCapacityKw} kW rated AC output with ${proposal.system.inverterWarranty} manufacturer warranty.`,
+                      })
+                    }
+                    className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                  >
+                    Click for more details
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Battery */}
-            <div className="madola-card madola-card-hover p-6 rounded-2xl bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="inline-flex p-3 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white">
-                  <Battery className="w-6 h-6" />
-                </div>
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{proposal.system.batteryManufacturer}</h3>
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{proposal.system.batteryModel}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Safe LFP (Lithium Iron Phosphate) battery chemistry with high depth of discharge.
-                </p>
+            {/* 3. Solar Panel Card */}
+            <div className="p-5 sm:p-6 rounded-2xl border border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/10 dark:border-emerald-500/20 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-5 hover:border-emerald-500/50 transition-all">
+              <div className="w-full sm:w-44 h-32 rounded-xl overflow-hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0 p-2 flex items-center justify-center shadow-inner">
+                <img
+                  src="https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=600&q=80"
+                  alt={proposal.system.panelModel}
+                  className="max-h-full max-w-full object-contain"
+                />
               </div>
-              <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between text-xs text-slate-600 dark:text-slate-300 font-bold">
-                <span>Warranty</span>
-                <span className="text-emerald-600 dark:text-emerald-400">{proposal.system.batteryWarranty}</span>
+              <div className="flex-1 space-y-2 min-w-0">
+                <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-slate-100">
+                  {proposal.system.panelCount} x {proposal.system.panelModel} [15 Years]
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">
+                  {proposal.system.panelModel} : Longi HimoX10 Scientist - Mono {proposal.system.panelWattage}Wp Black Frame PV Module - 1134x1800x30mm
+                </p>
+                <div className="pt-1 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDetailModalItem({
+                        brand: proposal.system.panelManufacturer,
+                        title: `${proposal.system.panelCount} x ${proposal.system.panelModel} [15 Years]`,
+                        image: "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=600&q=80",
+                        description: `High efficiency all-black N-Type TOPCon monocrystalline solar modules engineered for optimal UK diffuse light performance and aesthetic architectural integration.`,
+                        details: `15-Year Product Warranty and 30-Year 87.4% Linear Power Output Performance Warranty.`,
+                      })
+                    }
+                    className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                  >
+                    Click for more details
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 9 — TECHNICAL DETAILS */}
+        {/* SECTION — TECHNICAL DETAILS */}
         {/* ========================================================================= */}
-        <section className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-sm space-y-6">
-          <h2 className="text-xl font-bold text-slate-900">Technical Array Specifications</h2>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase">Roof Array</p>
-              <p className="text-sm font-bold text-slate-900 mt-0.5">{proposal.technical.roofGroup}</p>
+        <section id="section-technical-details" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 font-sans antialiased">
+          {/* Top Header Row */}
+          <div className="flex items-center justify-between -mx-8 sm:-mx-12 -mt-4 mb-2">
+            <div
+              className="text-white font-bold text-xs px-5 py-2 rounded-r-full shadow-sm tracking-wider uppercase"
+              style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+            >
+              Technical details
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase">Orientation</p>
-              <p className="text-sm font-bold text-slate-900 mt-0.5">{proposal.technical.orientation}</p>
+            <div className="flex items-center gap-2 pr-8 sm:pr-12">
+              {!logoError && branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl}
+                  alt={branding.companyName}
+                  onError={() => setLogoError(true)}
+                  className="h-8 max-w-[160px] object-contain"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm"
+                    style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+                  >
+                    <Zap className="w-4 h-4 fill-current" />
+                  </div>
+                  <span className="text-base font-black tracking-wider text-slate-900 dark:text-slate-50 uppercase">
+                    {branding.companyName}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-1">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight leading-tight">
+              Technical details
+            </h2>
+          </div>
+
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            As an MCS certified installer, we follow their strict calculation guidelines. Here's how we calculated the {proposal.system.annualGenerationKwh.toLocaleString()} kWh annual output estimate. If you need to speak to us about this we can run you through more of the detail.
+          </p>
+
+          {/* Roof 1 Tab Card Container */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50/50 dark:bg-slate-800/30">
+            {/* Roof Tab Header */}
+            <div className="bg-white dark:bg-slate-900 p-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
+              <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                {proposal.technical.roofGroup || "Roof 1"}
+              </span>
+              <span className="text-xs text-slate-500 font-medium">
+                {proposal.technical.orientation || "59° from south"} • {proposal.technical.pitch || "37°"} pitch
+              </span>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase">Pitch</p>
-              <p className="text-sm font-bold text-slate-900 mt-0.5">{proposal.technical.pitch}</p>
+            {/* Content Inside Tab */}
+            <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+              {/* Left Column: Panel group details */}
+              <div className="md:col-span-4 space-y-2">
+                <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Panel group 1</h4>
+                <p className="text-xs text-slate-500 font-mono">
+                  kWh/kWp (Kk): <strong className="text-slate-800 dark:text-slate-200">{proposal.technical.kwhPerKwp || 856}</strong>
+                </p>
+              </div>
+
+              {/* Right Column: Sunpath Diagram & Shading Mask */}
+              <div className="md:col-span-8 space-y-2">
+                <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">Sunpath Diagram</h4>
+                <p className="text-[10px] text-slate-500 leading-relaxed">
+                  <strong className="text-rose-600">Disclaimer:</strong> The shade mask mapped onto the sunpath diagram is based off the field of view from a point in the center of the array. This means that the shade mask shown will only capture the shading experienced at the array center point, and will not reflect the shading casted onto other locations on the array.
+                </p>
+
+                {/* Sunpath Chart Visual */}
+                <div className="relative w-full h-44 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 flex flex-col justify-end">
+                  <svg viewBox="0 0 400 160" className="w-full h-full">
+                    {/* Grid lines */}
+                    <line x1="20" y1="140" x2="380" y2="140" stroke="#cbd5e1" strokeWidth="1" />
+                    <line x1="20" y1="100" x2="380" y2="100" stroke="#e2e8f0" strokeDasharray="3,3" strokeWidth="1" />
+                    <line x1="20" y1="60" x2="380" y2="60" stroke="#e2e8f0" strokeDasharray="3,3" strokeWidth="1" />
+                    <line x1="20" y1="20" x2="380" y2="20" stroke="#e2e8f0" strokeDasharray="3,3" strokeWidth="1" />
+
+                    {/* Sunpath green dome shape */}
+                    <path
+                      d="M 40 140 Q 200 10 360 140 Z"
+                      fill="rgba(16, 185, 129, 0.25)"
+                      stroke="#10b981"
+                      strokeWidth="2"
+                    />
+                    <path
+                      d="M 80 140 Q 200 40 320 140 Z"
+                      fill="rgba(16, 185, 129, 0.4)"
+                      stroke="#059669"
+                      strokeWidth="1.5"
+                    />
+
+                    {/* Horizon shading bars */}
+                    <rect x="340" y="105" width="12" height="35" fill="#cbd5e1" />
+                    <rect x="352" y="95" width="12" height="45" fill="#94a3b8" />
+                    <rect x="364" y="85" width="12" height="55" fill="#64748b" />
+
+                    {/* Labels */}
+                    <text x="40" y="155" fontSize="9" fill="#94a3b8" textAnchor="middle">135° East</text>
+                    <text x="120" y="155" fontSize="9" fill="#94a3b8" textAnchor="middle">90° East</text>
+                    <text x="200" y="155" fontSize="9" fill="#10b981" fontWeight="bold" textAnchor="middle">0° South</text>
+                    <text x="280" y="155" fontSize="9" fill="#94a3b8" textAnchor="middle">90° West</text>
+                    <text x="360" y="155" fontSize="9" fill="#94a3b8" textAnchor="middle">135° West</text>
+                  </svg>
+                </div>
+              </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase">Specific Yield</p>
-              <p className="text-sm font-bold text-slate-900 mt-0.5">{proposal.technical.kwhPerKwp} kWh/kWp</p>
+            {/* Calculations Banner Footer */}
+            <div className="p-4 bg-slate-100 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
+              <span className="text-slate-600 dark:text-slate-400">
+                Other information used in the calculations: Installation capacity: <strong className="text-slate-900 dark:text-slate-100">{proposal.system.systemSizeKwp} kWp</strong>
+              </span>
+              <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100 font-mono">
+                Estimated output (kWp x Kk x SF): {proposal.system.annualGenerationKwh.toLocaleString()} kWh
+              </span>
             </div>
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 10 — PERFORMANCE ESTIMATES */}
+        {/* SECTION — PERFORMANCE ESTIMATES */}
         {/* ========================================================================= */}
-        <section className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-sm space-y-6">
-          <h2 className="text-xl font-bold text-slate-900">Estimated Annual Energy Performance</h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Self-Sufficiency</span>
-                <span className="text-2xl font-extrabold text-emerald-700">{proposal.performance.selfSufficiencyPercent}%</span>
-              </div>
-              <p className="text-xs text-emerald-800 leading-relaxed">
-                Percentage of your home's total electricity demand met directly by solar PV and battery storage.
-              </p>
+        <section id="section-performance-estimates" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 font-sans antialiased">
+          {/* Top Header Row */}
+          <div className="flex items-center justify-between -mx-8 sm:-mx-12 -mt-4 mb-2">
+            <div
+              className="text-white font-bold text-xs px-5 py-2 rounded-r-full shadow-sm tracking-wider uppercase"
+              style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+            >
+              Performance estimates
             </div>
 
-            <div className="p-6 rounded-2xl bg-slate-900 text-white space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Self-Consumption</span>
-                <span className="text-2xl font-extrabold text-amber-300">{proposal.performance.selfConsumptionPercent}%</span>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Percentage of generated solar energy consumed directly inside your home rather than exported.
-              </p>
+            <div className="flex items-center gap-2 pr-8 sm:pr-12">
+              {!logoError && branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl}
+                  alt={branding.companyName}
+                  onError={() => setLogoError(true)}
+                  className="h-8 max-w-[160px] object-contain"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm"
+                    style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+                  >
+                    <Zap className="w-4 h-4 fill-current" />
+                  </div>
+                  <span className="text-base font-black tracking-wider text-slate-900 dark:text-slate-50 uppercase">
+                    {branding.companyName}
+                  </span>
+                </div>
+              )}
             </div>
+          </div>
+
+          <div className="pt-1">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight leading-tight">
+              Performance estimates
+            </h2>
+          </div>
+
+          {/* MCS Standard Calculation Table Matching Screenshot */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+            <table className="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-800 text-white font-extrabold">
+                  <th colSpan={2} className="px-4 py-2.5 uppercase tracking-wider">A. Installation data</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                <tr>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300 font-medium">
+                    Installed capacity of PV system - kWp (stc)
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
+                    {proposal.system.systemSizeKwp} kWp
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300 font-medium">
+                    Orientation of the PV system - degrees from South
+                  </td>
+                  <td className="px-4 py-3 text-right text-slate-500 dark:text-slate-400">
+                    See in technical details section
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300 font-medium">
+                    Inclination of system - degrees from horizontal
+                  </td>
+                  <td className="px-4 py-3 text-right text-slate-500 dark:text-slate-400">
+                    See in technical details section
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300 font-medium">
+                    Postcode region
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
+                    {proposal.customer?.postcode?.substring(0, 2) || "SW"}
+                  </td>
+                </tr>
+              </tbody>
+
+              <thead>
+                <tr className="bg-slate-800 text-white font-extrabold">
+                  <th colSpan={2} className="px-4 py-2.5 uppercase tracking-wider">B. Performance calculations</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                <tr>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300 font-medium">
+                    kWh/kWp (Kk) from table
+                  </td>
+                  <td className="px-4 py-3 text-right text-slate-500 dark:text-slate-400">
+                    See in technical details section
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300 font-medium">
+                    Shade Factor (SF)
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
+                    {proposal.technical.shadeFactor || 0.999}
+                  </td>
+                </tr>
+                <tr className="bg-emerald-50/50 dark:bg-emerald-950/30">
+                  <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-slate-100">
+                    Estimated annual output (kWp x Kk x SF)
+                  </td>
+                  <td className="px-4 py-3.5 text-right font-mono font-black text-emerald-700 dark:text-emerald-300 text-sm">
+                    {proposal.system.annualGenerationKwh.toLocaleString()} kWh
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
 
@@ -2013,42 +2296,60 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
         </div>
 
         {/* Navigation List Items */}
-        <nav className="space-y-1 text-xs font-semibold text-slate-700">
-          <a href="#section-cover" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+        <nav className="space-y-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <a href="#section-cover" className="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Cover</span>
           </a>
-          <a href="#section-why-us" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+          <a href="#section-why-us" className="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Why Choose Us?</span>
           </a>
-          <a href="#section-intro" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+          <a href="#section-intro" className="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Text</span>
           </a>
-          <a href="#section-our-work" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+          <a href="#section-our-work" className="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Our Work</span>
           </a>
-          <a href="#section-panel-layout" className="flex flex-col px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
-            <span className="font-extrabold text-slate-900">Panel layout</span>
+          <a href="#section-panel-layout" className="flex flex-col px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+            <span className="font-extrabold text-slate-900 dark:text-slate-100">Panel layout</span>
             <span className="text-[10px] text-slate-400 font-normal">Proposed panel positions</span>
           </a>
-          <a href="#section-whats-included" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+          <a href="#section-product-highlights" className="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+            <span>Product Highlights</span>
+          </a>
+          <a href="#section-technical-details" className="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+            <span>Technical details</span>
+          </a>
+          <a href="#section-performance-estimates" className="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+            <span>Performance estimates</span>
+          </a>
+          <a href="#section-usage" className="flex flex-col px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+            <span>Energy usage & profile</span>
+            <span className="text-[10px] text-slate-400 font-normal">Current energy bill</span>
+          </a>
+          <a href="#section-self-consumption" className="flex flex-col px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+            <span>Self-consumption</span>
+            <span className="text-[10px] text-slate-400 font-normal">Where your solar energy will go</span>
+          </a>
+          <a href="#section-financials" className="flex flex-col px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+            <span>Before vs after solar</span>
+            <span className="text-[10px] text-slate-400 font-normal">Your savings explained</span>
+          </a>
+          <a href="#section-whats-included" className="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>What's Included</span>
           </a>
-          <a href="#section-ev-charger" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+          <a href="#section-ev-charger" className="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Add an EV?</span>
           </a>
-          <a href="#section-options" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+          <a href="#section-options" className="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Extra products</span>
           </a>
-          <a href="#section-notes" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
-            <span>Text</span>
+          <a href="#section-next-steps" className="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+            <span>Next Steps</span>
           </a>
-          <a href="#section-payment" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
-            <span>Payment schedule</span>
+          <a href="#section-payment" className="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+            <span>Pricing</span>
           </a>
-          <a href="#section-financials" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
-            <span>Final price summary</span>
-          </a>
-          <a href="#section-acceptance" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
+          <a href="#section-acceptance" className="flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Acceptance</span>
           </a>
         </nav>
@@ -2064,16 +2365,27 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
           </button>
         </div>
 
-        {/* Dark Price Summary Box at Bottom */}
-        <div className="bg-slate-900 text-white rounded-2xl p-4 space-y-2 border border-slate-800 shadow-md">
+        {/* Dark Price Summary Box at Bottom matching OpenSolar */}
+        <div className="bg-slate-900 text-white rounded-2xl p-4 space-y-3 border border-slate-800 shadow-md">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">TOTAL PRICE</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-xl font-black text-white">
-              £{pricing.finalTotal.toLocaleString()}
-            </span>
+          <div className="flex items-baseline justify-between border-b border-slate-800 pb-2">
+            <div>
+              <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                £{proposal.financials.firstYearSavings ? proposal.financials.firstYearSavings.toFixed(2) : "858.27"} YEAR 1 SAVINGS
+              </p>
+              <span className="text-xl font-black text-white">
+                £{pricing.finalTotal.toLocaleString()}
+              </span>
+            </div>
             <span className="text-[10px] font-bold text-slate-400">NO VAT</span>
           </div>
-          <div className="pt-2 border-t border-slate-800 space-y-1 text-[10px] font-medium text-slate-400">
+
+          <div className="bg-amber-400/10 border border-amber-400/30 rounded-xl p-2 flex items-center gap-1.5 text-amber-300 text-[11px] font-bold">
+            <Zap className="w-3.5 h-3.5 fill-current text-amber-400 shrink-0" />
+            <span>Finance available from £78 per month</span>
+          </div>
+
+          <div className="pt-1 space-y-1 text-[10px] font-medium text-slate-400">
             <a href="#section-payment" className="block hover:text-emerald-400 underline decoration-slate-700">
               Manage finance options
             </a>
