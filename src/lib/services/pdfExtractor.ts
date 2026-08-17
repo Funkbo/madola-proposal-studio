@@ -131,35 +131,69 @@ export function extractImagesFromPdfBuffer(pdfBuffer: Buffer): string[] {
 
 export function extractRawPdfTextStrings(pdfBuffer: Buffer): string {
   try {
-    const rawStr = pdfBuffer.toString("latin1");
-    const textMatches: string[] = [];
+    const extractedTextParts: string[] = [];
 
-    // Extract text in PDF parentheses (e.g. (Customer Name), (5.76 kWp))
-    const parenRegex = /\(([^()\r\n]{2,150})\)/g;
-    let match: RegExpExecArray | null;
-    while ((match = parenRegex.exec(rawStr)) !== null) {
-      const cleaned = match[1].replace(/\\([()\\])/g, "$1").trim();
-      if (cleaned.length > 1 && !/^[\x00-\x1F]+$/.test(cleaned)) {
-        textMatches.push(cleaned);
+    // 1. Decompress zlib FlateDecode stream blocks natively
+    let searchIndex = 0;
+    while (searchIndex < pdfBuffer.length) {
+      const streamStart = pdfBuffer.indexOf("stream", searchIndex);
+      if (streamStart === -1) break;
+
+      let dataStart = streamStart + 6;
+      if (pdfBuffer[dataStart] === 0x0d && pdfBuffer[dataStart + 1] === 0x0a) {
+        dataStart += 2;
+      } else if (pdfBuffer[dataStart] === 0x0a || pdfBuffer[dataStart] === 0x0d) {
+        dataStart += 1;
       }
-    }
 
-    // Extract text from stream blocks
-    const streamRegex = /BT[\s\S]*?ET/g;
-    while ((match = streamRegex.exec(rawStr)) !== null) {
-      const block = match[0];
-      const tjRegex = /\[(.*?)\]\s*TJ|\((.*?)\)\s*Tj/g;
-      let tjMatch: RegExpExecArray | null;
-      while ((tjMatch = tjRegex.exec(block)) !== null) {
-        const item = tjMatch[1] || tjMatch[2] || "";
-        const cleaned = item.replace(/\((.*?)\)/g, "$1").replace(/\\/g, "").trim();
-        if (cleaned.length > 1) {
-          textMatches.push(cleaned);
+      const streamEnd = pdfBuffer.indexOf("endstream", dataStart);
+      if (streamEnd === -1) break;
+
+      let chunk = pdfBuffer.subarray(dataStart, streamEnd);
+      if (chunk.length > 0 && (chunk[chunk.length - 1] === 0x0a || chunk[chunk.length - 1] === 0x0d)) {
+        chunk = chunk.subarray(0, chunk.length - 1);
+      }
+      if (chunk.length > 0 && (chunk[chunk.length - 1] === 0x0a || chunk[chunk.length - 1] === 0x0d)) {
+        chunk = chunk.subarray(0, chunk.length - 1);
+      }
+
+      let decompressedStr = "";
+      if (chunk.length > 0) {
+        try {
+          decompressedStr = zlib.inflateSync(chunk).toString("latin1");
+        } catch (e1) {
+          try {
+            decompressedStr = zlib.inflateRawSync(chunk).toString("latin1");
+          } catch (e2) {
+            decompressedStr = chunk.toString("latin1");
+          }
         }
       }
+
+      const parenRegex = /\(([^()\r\n]{2,200})\)/g;
+      let match: RegExpExecArray | null;
+      while ((match = parenRegex.exec(decompressedStr)) !== null) {
+        const cleaned = match[1].replace(/\\([()\\])/g, "$1").trim();
+        if (cleaned.length > 1 && !/^[\x00-\x1F]+$/.test(cleaned)) {
+          extractedTextParts.push(cleaned);
+        }
+      }
+
+      searchIndex = streamEnd + 9;
     }
 
-    return textMatches.join("\n");
+    // 2. Global uncompressed buffer extraction fallback
+    const fullRawStr = pdfBuffer.toString("latin1");
+    const globalParenRegex = /\(([^()\r\n]{2,200})\)/g;
+    let globalMatch: RegExpExecArray | null;
+    while ((globalMatch = globalParenRegex.exec(fullRawStr)) !== null) {
+      const cleaned = globalMatch[1].replace(/\\([()\\])/g, "$1").trim();
+      if (cleaned.length > 1 && !/^[\x00-\x1F]+$/.test(cleaned)) {
+        extractedTextParts.push(cleaned);
+      }
+    }
+
+    return extractedTextParts.join("\n");
   } catch (e) {
     console.warn("Could not extract raw PDF text strings", e);
     return "";
