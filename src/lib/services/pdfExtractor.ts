@@ -315,7 +315,7 @@ export function extractFromText(rawText: string, extractedImages: string[] = [])
 
   // 1. Customer & Sales Rep Details
   const customerNameMatch =
-    normalizedText.match(/(?:Proposal for|Prepared for|Customer Name|Client Name|Customer|Client|For)[:\s]+([A-Za-z0-9 \t'-]{2,40})/i) ||
+    normalizedText.match(/(?:Proposal for|Prepared for|Customer Name|Client Name|Customer|Client)[:\s]+([A-Za-z0-9 \t'-]{2,40})/i) ||
     normalizedText.match(/(?:Hi|Dear)\s+([A-Za-z0-9 \t'-]{2,30})/i) ||
     normalizedText.match(/Proposal for[ \t]+([A-Za-z0-9 \t'-]{2,40})/i);
   const customerNameVal = customerNameMatch ? customerNameMatch[1].trim().split("\n")[0] : undefined;
@@ -325,13 +325,14 @@ export function extractFromText(rawText: string, extractedImages: string[] = [])
     : matchField(/(?:Proposal for|Prepared for|Customer|Client Name)[: \t]+([A-Za-z0-9 \t'-]{2,40})/i, (s) => s);
 
   const addressMatch =
-    normalizedText.match(/(?:Site Address|Property Address|Installation Address|Address|Site)[:\s]+([^\n]{5,80})/i) ||
-    normalizedText.match(/For:[ \t]*[^\n]+\n([^\n]{5,80})/i);
+    normalizedText.match(/(?:Site Address|Property Address|Installation Address)[:\s]+([^\n]{5,80})/i) ||
+    normalizedText.match(/([0-9]{1,4}\s+[A-Za-z0-9\s,.-]+(?:Road|Street|Avenue|Lane|Close|Drive|Way|Court|Hill|Park|Place|House|Gardens)[A-Za-z0-9\s,.-]*[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})/i) ||
+    normalizedText.match(/(?:Address)[:\s]+([^\n]{5,80})/i);
   const addressVal = addressMatch ? addressMatch[1].trim().split("\n")[0] : undefined;
 
   const address: ExtractionField<string> = addressVal
     ? { value: addressVal, source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/(?:Site Address|Property Address|Installation Address|Address|Site)[:\s]+([^\n]{5,80})/i, (s) => s);
+    : matchField(/(?:Site Address|Property Address|Installation Address)[:\s]+([^\n]{5,80})/i, (s) => s);
 
   const postcodeMatch = normalizedText.match(/([A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})/i);
   const postcodeVal = postcodeMatch ? postcodeMatch[1].toUpperCase() : undefined;
