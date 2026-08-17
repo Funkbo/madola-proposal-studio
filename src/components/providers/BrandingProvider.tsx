@@ -1,0 +1,97 @@
+"use client";
+
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import {
+  CompanyBrandingData,
+  DEFAULT_BRANDING_DATA,
+  getCompanyBranding,
+  getPublicCompanyBranding,
+  applyThemeCssVariables,
+} from "@/lib/repositories/companyBrandingRepository";
+import { getSupabaseClient } from "@/lib/supabase/getSupabaseClient";
+
+const BrandingContext = createContext<CompanyBrandingData>(DEFAULT_BRANDING_DATA);
+
+export function BrandingProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [branding, setBranding] = useState<CompanyBrandingData>(DEFAULT_BRANDING_DATA);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncBranding = async () => {
+      // For unauthenticated login page, use secure public-safe branding metadata from Supabase
+      if (pathname === "/login") {
+        try {
+          const publicData = await getPublicCompanyBranding();
+          if (isMounted) {
+            const merged = { ...DEFAULT_BRANDING_DATA, ...publicData };
+            setBranding(merged);
+            applyThemeCssVariables(merged);
+          }
+        } catch (e) {
+          if (isMounted) {
+            setBranding(DEFAULT_BRANDING_DATA);
+            applyThemeCssVariables(DEFAULT_BRANDING_DATA);
+          }
+        }
+        return;
+      }
+
+      try {
+        const data = await getCompanyBranding();
+        if (isMounted && data) {
+          setBranding(data);
+          applyThemeCssVariables(data);
+        }
+      } catch (e) {
+        console.warn("BrandingProvider sync failed", e);
+      }
+    };
+
+    syncBranding();
+
+    // Subscribe to Supabase Auth state transitions (SIGNED_IN, SIGNED_OUT, etc.)
+    let authSubscription: { unsubscribe: () => void } | null = null;
+    getSupabaseClient().then((supabase) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED" || event === "INITIAL_SESSION") {
+          syncBranding();
+        } else if (event === "SIGNED_OUT") {
+          if (isMounted) {
+            setBranding(DEFAULT_BRANDING_DATA);
+            applyThemeCssVariables(DEFAULT_BRANDING_DATA);
+          }
+        }
+      });
+      authSubscription = subscription;
+    }).catch((e) => {
+      console.warn("Failed to subscribe to auth state in BrandingProvider", e);
+    });
+
+    const handleUpdate = () => {
+      syncBranding();
+    };
+
+    window.addEventListener("madola_branding_updated", handleUpdate);
+
+    return () => {
+      isMounted = false;
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
+      window.removeEventListener("madola_branding_updated", handleUpdate);
+    };
+  }, [pathname]);
+
+  return (
+    <BrandingContext.Provider value={branding}>
+      {children}
+    </BrandingContext.Provider>
+  );
+}
+
+export function useBrandingContext(): CompanyBrandingData {
+  return useContext(BrandingContext);
+}

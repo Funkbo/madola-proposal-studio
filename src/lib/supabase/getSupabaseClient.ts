@@ -1,0 +1,36 @@
+import { getSupabaseEnv } from "./config";
+
+/**
+ * Returns the appropriate Supabase client depending on the execution environment:
+ * - On the server (Server Components / Server Actions / Route Handlers): uses `createServerClient` with request cookies.
+ * - On the browser (Client Components): uses `createBrowserClient`.
+ */
+export async function getSupabaseClient() {
+  const { url, key } = getSupabaseEnv();
+
+  if (typeof window === "undefined") {
+    const { createServerClient } = await import("@supabase/ssr");
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+
+    return createServerClient(url, key, {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Safe to ignore in Server Component context
+          }
+        },
+      },
+    });
+  }
+
+  const { createBrowserClient } = await import("@supabase/ssr");
+  return createBrowserClient(url, key);
+}

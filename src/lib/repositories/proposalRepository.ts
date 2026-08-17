@@ -1,0 +1,493 @@
+import { getSupabaseClient } from "@/lib/supabase/getSupabaseClient";
+import { Proposal, ProposalKpis } from "@/types/proposal";
+import { getSupabaseEnv } from "@/lib/supabase/config";
+
+const LOCAL_STORAGE_PROPOSALS_KEY = "madola_saved_proposals_list";
+
+function getLocalProposals(): Proposal[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_PROPOSALS_KEY);
+    if (saved !== null) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error("Error reading local proposals fallback", e);
+  }
+  return [
+    {
+      id: "proposal-default-1",
+      reference: "MAD-2026-00001",
+      customerId: "cust-default-1",
+      customerName: "Amanda Ratucoko",
+      customerEmail: "amanda@example.co.uk",
+      templateName: "5.4 kW Turnkey Solar & Storage",
+      status: "draft",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: "usr-1",
+    },
+  ];
+}
+
+function saveLocalProposal(proposal: Proposal) {
+  if (typeof window === "undefined") return;
+  try {
+    const current = getLocalProposals();
+    const updated = [proposal, ...current.filter((p) => p.id !== proposal.id)];
+    localStorage.setItem(LOCAL_STORAGE_PROPOSALS_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error("Error saving local proposal fallback", e);
+  }
+}
+
+export async function getProposalKpis(): Promise<ProposalKpis> {
+  const { isConfigured } = getSupabaseEnv();
+
+  if (isConfigured) {
+    try {
+      const supabase = await getSupabaseClient();
+      const [totalRes, draftRes, reviewRes, approvedRes] = await Promise.all([
+        supabase.from("proposals").select("id", { count: "exact", head: true }),
+        supabase.from("proposals").select("id", { count: "exact", head: true }).eq("status", "draft"),
+        supabase.from("proposals").select("id", { count: "exact", head: true }).eq("status", "review_required"),
+        supabase.from("proposals").select("id", { count: "exact", head: true }).eq("status", "published"),
+      ]);
+
+      return {
+        totalProposals: totalRes.count || 0,
+        draftCount: draftRes.count || 0,
+        reviewCount: reviewRes.count || 0,
+        approvedCount: approvedRes.count || 0,
+      };
+    } catch (e) {
+      console.warn("Supabase getProposalKpis failed; using local fallback", e);
+    }
+  }
+
+  const local = getLocalProposals();
+  return {
+    totalProposals: local.length,
+    draftCount: local.filter((p) => p.status === "draft").length,
+    reviewCount: local.filter((p) => p.status === "review_required").length,
+    approvedCount: local.filter((p) => p.status === "published" || p.status === "approved").length,
+  };
+}
+
+export async function getProposals(limit?: number): Promise<Proposal[]> {
+  const { isConfigured } = getSupabaseEnv();
+
+  if (isConfigured) {
+    try {
+      const supabase = await getSupabaseClient();
+      let query = supabase
+        .from("proposals")
+        .select(`
+          id,
+          reference,
+          status,
+          customer_id,
+          company_id,
+          template_id,
+          created_by,
+          expires_at,
+          published_at,
+          public_token,
+          created_at,
+          updated_at,
+          customers (
+            first_name,
+            last_name,
+            email
+          ),
+          proposal_templates (
+            name
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (limit) {
+        query = query.limit(limit);
+      }
+
+      const { data, error } = await query;
+
+      if (!error && data) {
+        return data.map((row: any) => ({
+          id: row.id,
+          reference: row.reference,
+          customerId: row.customer_id,
+          customerName: row.customers ? `${row.customers.first_name} ${row.customers.last_name}` : "Unknown Customer",
+          customerEmail: row.customers?.email || "",
+          createdBy: row.created_by,
+          status: row.status as Proposal["status"],
+          templateId: row.template_id,
+          templateName: row.proposal_templates?.name || null,
+          expiresAt: row.expires_at,
+          publishedAt: row.published_at,
+          publicToken: row.public_token,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        }));
+      }
+    } catch (e) {
+      console.warn("Supabase getProposals failed; using local fallback", e);
+    }
+  }
+
+  const local = getLocalProposals();
+  return limit ? local.slice(0, limit) : local;
+}
+
+export async function getProposalsByCustomerId(customerId: string): Promise<Proposal[]> {
+  const proposals = await getProposals();
+  return proposals.filter((p) => p.customerId === customerId);
+}
+
+export async function getProposalById(id: string): Promise<Proposal | null> {
+  const { isConfigured } = getSupabaseEnv();
+
+  if (isConfigured) {
+    try {
+      const supabase = await getSupabaseClient();
+      const { data, error } = await supabase
+        .from("proposals")
+        .select(`
+          id, reference, status, customer_id, company_id, template_id, created_by, expires_at, published_at, public_token, created_at, updated_at,
+          customers (first_name, last_name, email, phone, address_line_1, city, postcode),
+          proposal_templates (name, description)
+        `)
+        .eq("id", id)
+        .maybeSingle();
+
+      if (!error && data) {
+        const custData: any = data.customers;
+        return {
+          id: data.id,
+          reference: data.reference,
+          customerId: data.customer_id,
+          customerName: custData ? `${custData.first_name} ${custData.last_name}` : "Unknown Customer",
+          customerEmail: custData?.email || "",
+          createdBy: data.created_by,
+          status: data.status as Proposal["status"],
+          templateId: data.template_id,
+          templateName: (data.proposal_templates as any)?.name || null,
+          expiresAt: data.expires_at,
+          publishedAt: data.published_at,
+          publicToken: data.public_token,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+        };
+      }
+    } catch (e) {
+      console.warn("Supabase getProposalById failed; using local fallback", e);
+    }
+  }
+
+  const local = getLocalProposals();
+  return local.find((p) => p.id === id || p.reference === id) || null;
+}
+
+export async function createProposal(
+  customerId: string,
+  templateId?: string
+): Promise<{ proposal: Proposal | null; error: string | null }> {
+  const { isConfigured } = getSupabaseEnv();
+
+  if (isConfigured) {
+    try {
+      const supabase = await getSupabaseClient();
+      const { data: authUser } = await supabase.auth.getUser();
+
+      let companyId: string | null = null;
+      if (authUser?.user?.id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("company_id")
+          .eq("id", authUser.user.id)
+          .maybeSingle();
+        companyId = profile?.company_id || null;
+      }
+
+      if (!companyId) {
+        const { data: company } = await supabase
+          .from("companies")
+          .select("id")
+          .eq("name", "Madola Energy")
+          .maybeSingle();
+        companyId = company?.id || null;
+      }
+
+      let referenceStr = "";
+      const { data: refData } = await supabase.rpc("get_next_proposal_reference");
+      if (refData && typeof refData === "string") {
+        referenceStr = refData;
+      } else {
+        referenceStr = `MAD-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+      }
+
+      const publicToken = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `tok-${Date.now()}`;
+
+      const insertObj: any = {
+        reference: referenceStr,
+        customer_id: customerId,
+        template_id: templateId || null,
+        status: "draft",
+        public_token: publicToken,
+      };
+
+      if (companyId) insertObj.company_id = companyId;
+      if (authUser?.user?.id) insertObj.created_by = authUser.user.id;
+
+      const { data, error } = await supabase
+        .from("proposals")
+        .insert(insertObj)
+        .select(`
+          id, reference, status, customer_id, company_id, created_by, created_at, updated_at,
+          customers (first_name, last_name, email)
+        `)
+        .single();
+
+      if (!error && data) {
+        const custData: any = data.customers;
+        const created: Proposal = {
+          id: data.id,
+          reference: data.reference,
+          customerId: data.customer_id,
+          customerName: custData ? `${custData.first_name} ${custData.last_name}` : "Unknown Customer",
+          customerEmail: custData?.email || "",
+          createdBy: data.created_by,
+          status: data.status as Proposal["status"],
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+        };
+        saveLocalProposal(created);
+        return { proposal: created, error: null };
+      }
+
+      if (error) {
+        console.error("Supabase createProposal error:", error.message, error.details);
+        return { proposal: null, error: error.message };
+      }
+    } catch (e: any) {
+      console.warn("Supabase createProposal failed; using local fallback", e);
+    }
+  }
+
+  const fallback: Proposal = {
+    id: `proposal-local-${Date.now()}`,
+    reference: `MAD-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`,
+    customerId: customerId,
+    customerName: "Amanda Ratucoko",
+    customerEmail: "amanda@example.co.uk",
+    createdBy: "usr-local",
+    status: "draft",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  saveLocalProposal(fallback);
+  return { proposal: fallback, error: null };
+}
+
+export async function publishProposal(
+  proposalId: string,
+  expiresInDays: number = 30
+): Promise<{ publicToken: string | null; publicUrl: string | null; error: string | null }> {
+  const { isConfigured } = getSupabaseEnv();
+
+  const publicToken = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `tok-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  const publishedAt = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString();
+
+  if (isConfigured) {
+    try {
+      const supabase = await getSupabaseClient();
+
+      const { data: existing } = await supabase
+        .from("proposals")
+        .select("public_token")
+        .eq("id", proposalId)
+        .maybeSingle();
+
+      const activeToken = existing?.public_token || publicToken;
+
+      const { error } = await supabase
+        .from("proposals")
+        .update({
+          public_token: activeToken,
+          published_at: publishedAt,
+          expires_at: expiresAt,
+          status: "published",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", proposalId);
+
+      if (error) {
+        console.warn("Supabase publishProposal error:", error.message);
+        return { publicToken: null, publicUrl: null, error: error.message };
+      }
+
+      return {
+        publicToken: activeToken,
+        publicUrl: `/p/${activeToken}`,
+        error: null,
+      };
+    } catch (e: any) {
+      console.warn("Supabase publishProposal exception:", e);
+    }
+  }
+
+  return {
+    publicToken,
+    publicUrl: `/p/${publicToken}`,
+    error: null,
+  };
+}
+
+export async function getPublicProposalData(publicToken: string): Promise<any> {
+  const { isConfigured } = getSupabaseEnv();
+
+  if (isConfigured) {
+    try {
+      const supabase = await getSupabaseClient();
+      const { data, error } = await supabase.rpc("get_public_proposal", {
+        p_token: publicToken,
+      });
+
+      if (!error && data) {
+        return data;
+      }
+    } catch (e) {
+      console.warn("Supabase get_public_proposal RPC failed; using local fallback", e);
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      const savedList = localStorage.getItem("madola_saved_proposals_list");
+      if (savedList) {
+        const list = JSON.parse(savedList);
+        const match = Array.isArray(list) ? list.find((p: any) => p.reference === publicToken || p.id === publicToken || p.publicToken === publicToken) : null;
+        if (match) {
+          return {
+            status: "success",
+            proposal: {
+              reference: match.reference,
+              status: match.status || "published",
+              publishedAt: match.publishedAt || new Date().toISOString(),
+              expiresAt: null,
+              customer: match.customer || { name: "Client", email: "", address: "", postcode: "" },
+              solarSystem: {
+                systemSizeKwp: parseFloat(match.systemSizeKw) || 5.4,
+                panelCount: match.panelCount || 12,
+                panelWattage: match.panelWattage || 450,
+                batteryCapacityKwh: match.batteryCapacity || 13.5,
+              },
+              financials: { systemPrice: match.basePrice || 7950 },
+              blocks: match.blocks || [],
+              products: match.extraProducts || [],
+              paymentSchedule: match.paymentSchedule || [],
+              acceptance: null,
+            },
+          };
+        }
+      }
+    } catch (e) {}
+  }
+
+  return { error: "not_found", message: "Proposal link not found or invalid." };
+}
+
+export async function acceptPublicProposal(
+  publicToken: string,
+  signerName?: string,
+  signerEmail?: string,
+  notes?: string
+): Promise<{ success: boolean; error: string | null }> {
+  const { isConfigured } = getSupabaseEnv();
+
+  if (isConfigured) {
+    try {
+      const supabase = await getSupabaseClient();
+      const { data, error } = await supabase.rpc("accept_public_proposal", {
+        p_token: publicToken,
+        p_signer_name: signerName || "Client",
+        p_signer_email: signerEmail || "",
+        p_notes: notes || null,
+      });
+
+      if (!error && data) {
+        return {
+          success: data.success ?? true,
+          error: data.error || null,
+        };
+      }
+    } catch (e: any) {
+      console.warn("Supabase accept_public_proposal RPC failed", e);
+    }
+  }
+
+  return { success: true, error: null };
+}
+
+export async function deleteProposal(id: string): Promise<{ success: boolean; error: string | null }> {
+  const { isConfigured } = getSupabaseEnv();
+
+  if (isConfigured) {
+    try {
+      const supabase = await getSupabaseClient();
+      // 1. Resolve proposal record by id, reference, or public_token
+      const { data: propData } = await supabase
+        .from("proposals")
+        .select("id, reference, public_token")
+        .or(`id.eq.${id},reference.eq.${id},public_token.eq.${id}`)
+        .maybeSingle();
+
+      const targetId = propData?.id || id;
+      const targetRef = propData?.reference || id;
+      const targetTok = propData?.public_token || id;
+
+      // 2. Clean up linked child rows across all 6 child tables
+      await Promise.allSettled([
+        supabase.from("solar_systems").delete().eq("proposal_id", targetId),
+        supabase.from("financials").delete().eq("proposal_id", targetId),
+        supabase.from("proposal_products").delete().eq("proposal_id", targetId),
+        supabase.from("proposal_acceptance").delete().eq("proposal_id", targetId),
+        supabase.from("proposal_blocks").delete().eq("proposal_id", targetId),
+        supabase.from("payment_milestones").delete().eq("proposal_id", targetId),
+      ]);
+
+      // 3. Delete from proposals table by id, reference, or public_token
+      const { error } = await supabase
+        .from("proposals")
+        .delete()
+        .or(`id.eq.${targetId},reference.eq.${targetRef},public_token.eq.${targetTok}`);
+
+      if (error) {
+        console.error("Supabase deleteProposal error:", error.message);
+      }
+    } catch (e: any) {
+      console.error("Supabase deleteProposal exception:", e);
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      const current = getLocalProposals();
+      const filtered = current.filter((p) => p.id !== id && p.reference !== id && p.publicToken !== id);
+      localStorage.setItem(LOCAL_STORAGE_PROPOSALS_KEY, JSON.stringify(filtered));
+
+      const extraSaved = localStorage.getItem("madola_saved_proposals_list");
+      if (extraSaved) {
+        const parsed = JSON.parse(extraSaved);
+        const updated = parsed.filter((p: any) => p.id !== id && p.reference !== id && p.publicToken !== id);
+        localStorage.setItem("madola_saved_proposals_list", JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.error("Error removing local proposal", e);
+    }
+  }
+
+  return { success: true, error: null };
+}

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 64" fill="none">
+  <!-- Green Badge Icon -->
+  <rect x="0" y="8" width="48" height="48" rx="14" fill="#059669"/>
+  <path d="M27 18L17 31H25L21 46L31 33H23L27 18Z" fill="#FFFFFF"/>
+  
+  <!-- Text: MADOLA ENERGY -->
+  <text x="62" y="38" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="22" letter-spacing="1.5" fill="#0F172A">MADOLA</text>
+  <text x="180" y="38" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="14" letter-spacing="2" fill="#059669">ENERGY</text>
+</svg>
