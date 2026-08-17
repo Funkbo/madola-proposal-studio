@@ -87,7 +87,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
         </div>
       </div>
 
-      {/* Main Table or Empty State */}
+      {/* Main Table or Responsive Mobile Card List */}
       {filteredProposals.length === 0 ? (
         <EmptyState
           icon={FileText}
@@ -99,66 +99,121 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
           }}
         />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Reference</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Template</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden sm:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Template</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProposals.map((proposal) => (
+                  <TableRow key={proposal.id}>
+                    <TableCell className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      {proposal.reference}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-semibold text-slate-900 dark:text-slate-100">{proposal.customerName}</div>
+                      <div className="text-xs text-slate-500">{proposal.customerEmail}</div>
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                      {proposal.templateName || "Default Solar Template"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge status={proposal.status} />
+                    </TableCell>
+                    <TableCell className="text-slate-500 text-xs font-medium">{formatUKDate(proposal.createdAt)}</TableCell>
+                    <TableCell className="text-right flex items-center justify-end gap-2">
+                      {proposal.publicToken && (
+                        <Link href={`/p/${proposal.publicToken}`} target="_blank">
+                          <Button variant="ghost" size="sm" title="Preview Public Proposal">
+                            <ExternalLink className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                          </Button>
+                        </Link>
+                      )}
+                      <Link href={`/proposals/${proposal.id}`}>
+                        <Button variant="outline" size="sm">
+                          <Eye className="w-3.5 h-3.5 mr-1" />
+                          Details
+                        </Button>
+                      </Link>
+                      <button
+                        onClick={() => setProposalToDelete(proposal)}
+                        className="p-2.5 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        title="Delete Proposal"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card List (Eliminates horizontal scrolling on 375px) */}
+          <div className="block sm:hidden space-y-3">
             {filteredProposals.map((proposal) => (
-              <TableRow key={proposal.id}>
-                <TableCell className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                  {proposal.reference}
-                </TableCell>
-                <TableCell>
-                  <div className="font-medium text-slate-900 dark:text-slate-100">{proposal.customerName}</div>
-                  <div className="text-xs text-slate-500">{proposal.customerEmail}</div>
-                </TableCell>
-                <TableCell className="text-xs text-slate-600 dark:text-slate-300">
-                  {proposal.templateName || "Default Solar Template"}
-                </TableCell>
-                <TableCell>
+              <div
+                key={proposal.id}
+                className="madola-card p-4 space-y-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm"
+              >
+                <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                  <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    {proposal.reference}
+                  </span>
                   <Badge status={proposal.status} />
-                </TableCell>
-                <TableCell className="text-slate-500 text-xs">{formatUKDate(proposal.createdAt)}</TableCell>
-                <TableCell className="text-right flex items-center justify-end gap-2">
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">{proposal.customerName}</h4>
+                  <p className="text-xs text-slate-500 truncate">{proposal.customerEmail}</p>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                  <span>{proposal.templateName || "Default Solar Template"}</span>
+                  <span>{formatUKDate(proposal.createdAt)}</span>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                   {proposal.publicToken && (
                     <Link href={`/p/${proposal.publicToken}`} target="_blank">
-                      <Button variant="ghost" size="sm" title="Preview Public Proposal">
-                        <ExternalLink className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <Button variant="ghost" size="sm" className="min-h-[44px]">
+                        <ExternalLink className="w-4 h-4 text-emerald-600" />
                       </Button>
                     </Link>
                   )}
-                  <Link href={`/proposals/${proposal.id}`}>
-                    <Button variant="outline" size="sm">
+                  <Link href={`/proposals/${proposal.id}`} className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full min-h-[44px]">
                       <Eye className="w-3.5 h-3.5 mr-1" />
                       Details
                     </Button>
                   </Link>
                   <button
                     onClick={() => setProposalToDelete(proposal)}
-                    className="p-2 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                    className="p-2.5 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 min-h-[44px] min-w-[44px] flex items-center justify-center border border-rose-200 dark:border-rose-900"
                     title="Delete Proposal"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
-                </TableCell>
-              </TableRow>
+                </div>
+              </div>
             ))}
-          </TableBody>
-        </Table>
+          </div>
+        </>
       )}
 
       {/* Delete Proposal Modal */}
       {proposalToDelete && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-modal-enter">
             <div className="flex items-center gap-3 text-rose-600">
               <div className="p-3 rounded-2xl bg-rose-100 dark:bg-rose-950/50">
                 <AlertTriangle className="w-6 h-6" />
@@ -179,6 +234,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
                 size="sm"
                 onClick={() => setProposalToDelete(null)}
                 disabled={isDeleting}
+                className="min-h-[44px]"
               >
                 Cancel
               </Button>
@@ -187,7 +243,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
                 size="sm"
                 onClick={handleDeleteConfirm}
                 disabled={isDeleting}
-                className="bg-rose-600 hover:bg-rose-700 text-white"
+                className="bg-rose-600 hover:bg-rose-700 text-white min-h-[44px]"
               >
                 <Trash2 className="w-4 h-4 mr-1.5" />
                 <span>{isDeleting ? "Deleting..." : "Delete Proposal"}</span>

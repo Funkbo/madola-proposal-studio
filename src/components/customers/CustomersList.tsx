@@ -114,54 +114,123 @@ export function CustomersList({ initialCustomers, initialSearch = "" }: Customer
           }}
         />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer Name</TableHead>
-              <TableHead>Contact Information</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden sm:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer Name</TableHead>
+                  <TableHead>Contact Information</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCustomers.map((cust) => (
+                  <TableRow key={cust.id}>
+                    <TableCell>
+                      <Link
+                        href={`/customers/${cust.id}`}
+                        className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1.5"
+                      >
+                        <span>{cust.firstName} {cust.lastName}</span>
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{cust.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{cust.phone}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="font-mono text-xs font-bold">{cust.postcode}</span>
+                      </div>
+                      <div className="text-xs text-slate-500">{cust.addressLine1}, {cust.city}</div>
+                    </TableCell>
+                    <TableCell className="text-right flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setEditingCustomer({ ...cust })}
+                        className="p-2.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        title="Edit Customer"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+
+                      <Link href={`/proposals/new?customerId=${cust.id}`}>
+                        <Button variant="outline" size="sm">
+                          <Plus className="w-3.5 h-3.5 mr-1" />
+                          Proposal
+                        </Button>
+                      </Link>
+
+                      <button
+                        onClick={() => setCustomerToDelete(cust)}
+                        className="p-2.5 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        title="Delete Customer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card List View (Eliminates horizontal scrolling on 375px) */}
+          <div className="block sm:hidden space-y-3">
             {filteredCustomers.map((cust) => (
-              <TableRow key={cust.id}>
-                <TableCell>
+              <div
+                key={cust.id}
+                className="madola-card p-4 space-y-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm"
+              >
+                <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
                   <Link
                     href={`/customers/${cust.id}`}
-                    className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1.5"
+                    className="font-extrabold text-sm text-emerald-600 dark:text-emerald-400 hover:underline"
                   >
-                    <span>{cust.firstName} {cust.lastName}</span>
+                    {cust.firstName} {cust.lastName}
                   </Link>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                    <Mail className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{cust.email}</span>
+                  <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                    {cust.postcode}
+                  </span>
+                </div>
+
+                <div className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate">{cust.email}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                    <Phone className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{cust.phone}</span>
+                  {cust.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>{cust.phone}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate">{cust.addressLine1}, {cust.city}</span>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="font-mono text-xs">{cust.postcode}</span>
-                  </div>
-                  <div className="text-xs text-slate-500">{cust.addressLine1}, {cust.city}</div>
-                </TableCell>
-                <TableCell className="text-right flex items-center justify-end gap-2">
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <button
                     onClick={() => setEditingCustomer({ ...cust })}
-                    className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 min-h-[44px] min-w-[44px] flex items-center justify-center"
                     title="Edit Customer"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
 
-                  <Link href={`/proposals/new?customerId=${cust.id}`}>
-                    <Button variant="outline" size="sm">
+                  <Link href={`/proposals/new?customerId=${cust.id}`} className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full min-h-[44px]">
                       <Plus className="w-3.5 h-3.5 mr-1" />
                       Proposal
                     </Button>
@@ -169,22 +238,22 @@ export function CustomersList({ initialCustomers, initialSearch = "" }: Customer
 
                   <button
                     onClick={() => setCustomerToDelete(cust)}
-                    className="p-2 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                    className="p-2.5 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 min-h-[44px] min-w-[44px] flex items-center justify-center border border-rose-200 dark:border-rose-900"
                     title="Delete Customer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
-                </TableCell>
-              </TableRow>
+                </div>
+              </div>
             ))}
-          </TableBody>
-        </Table>
+          </div>
+        </>
       )}
 
       {/* Delete Confirmation Modal */}
       {customerToDelete && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-modal-enter">
             <div className="flex items-center gap-3 text-rose-600">
               <div className="p-3 rounded-2xl bg-rose-100 dark:bg-rose-950/50">
                 <AlertTriangle className="w-6 h-6" />
