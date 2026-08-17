@@ -58,131 +58,84 @@ export default function NewProposalPage() {
 
     setIsUploading(true);
     setErrorMessage(null);
-    setUploadStep("Authenticating & resolving user company profile...");
+    setUploadStep("Extracting OpenSolar proposal data from PDF...");
 
     try {
-      const supabase = await getSupabaseClient();
-
-      // 1. Verify Authentication & Project URL
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      console.log("Supabase Project URL:", process.env.NEXT_PUBLIC_SUPABASE_URL || "https://hqdeexzbzqptedurwxbq.supabase.co");
-      console.log("Authenticated User:", userData?.user?.email || "ANONYMOUS", "ID:", userData?.user?.id);
-
-      if (userError || !userData?.user) {
-        setIsUploading(false);
-        setErrorMessage("Authentication Error: You must be logged in as demo@demo.com to upload files.");
-        return;
-      }
-
-      // Resolve Company ID from profile
-      let companyId = "5c813b60-7b97-47c1-9457-11f98adfb9b7";
-      try {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("company_id")
-          .eq("id", userData.user.id)
-          .single();
-        if (profile?.company_id) {
-          companyId = profile.company_id;
-        }
-      } catch (pe) {
-        console.warn("Profile company_id resolution warning:", pe);
-      }
-
-      const timestamp = Date.now();
-      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.-]/g, "_");
-      const bucketName = "proposal-pdfs";
-      const targetPath = `${companyId}/opensolar/${timestamp}_${sanitizedFileName}`;
-
-      // 2. Perform Direct Storage Upload
-      setUploadStep("Uploading PDF to Supabase Storage...");
-      console.log(`Attempting upload to bucket '${bucketName}' at path '${targetPath}'...`);
-
-      const { data: uploadData, error: uploadErr } = await supabase.storage
-        .from(bucketName)
-        .upload(targetPath, file, {
-          contentType: "application/pdf",
-          upsert: false,
-        });
-
-      console.log("UPLOAD DATA:", uploadData);
-      console.log("UPLOAD ERROR:", uploadErr);
-      console.log("BUCKET:", bucketName);
-      console.log("PATH:", targetPath);
-      console.log("FILE NAME:", file.name);
-      console.log("FILE SIZE:", file.size);
-
-      // 3. STOP IMMEDIATELY ON UPLOAD ERROR
-      if (uploadErr) {
-        setIsUploading(false);
-        setErrorMessage(`Supabase Storage Upload Failed (Bucket '${bucketName}'): ${uploadErr.message}`);
-        return;
-      }
-
-      if (!uploadData || !uploadData.path) {
-        setIsUploading(false);
-        setErrorMessage(`Supabase Storage Upload Failed: No storage path returned for '${bucketName}'.`);
-        return;
-      }
-
-      const returnedPath = uploadData.path;
-
-      // 4. Verify Object in Storage List
-      setUploadStep("Upload successful. Verifying object in Supabase Storage...");
-      const { data: listData, error: listErr } = await supabase.storage
-        .from(bucketName)
-        .list(`${companyId}/opensolar`);
-
-      console.log("STORAGE LIST DATA:", listData);
-      console.log("STORAGE LIST ERROR:", listErr);
-
-      // 5. Test Downloading the Stored PDF
-      setUploadStep("Verifying download from Supabase Storage...");
-      const { data: downloadData, error: downloadErr } = await supabase.storage
-        .from(bucketName)
-        .download(returnedPath);
-
-      console.log("STORAGE DOWNLOAD DATA:", downloadData ? `Size: ${downloadData.size} bytes` : null);
-      console.log("STORAGE DOWNLOAD ERROR:", downloadErr);
-
-      if (downloadErr) {
-        setIsUploading(false);
-        setErrorMessage(`Supabase Storage Download Failed for path '${returnedPath}': ${downloadErr.message}`);
-        return;
-      }
-
-      // 6. Only after Upload AND Download succeed, run PDF Extraction with base64 payload
-      const fileSizeMb = (file.size / (1024 * 1024)).toFixed(2);
-      setUploadStep(`Storage upload PASS (${fileSizeMb} MB). Extracting OpenSolar data...`);
-
-      // Read file arrayBuffer as Base64 string to ensure 100% reliable serverless extraction
+      // 1. Read file arrayBuffer & Base64 for instant PDF parsing
       const arrayBuffer = await file.arrayBuffer();
       const fileBase64 = Buffer.from(arrayBuffer).toString("base64");
 
+      // 2. Perform PDF extraction immediately via Server Action
+      const bucketName = "proposal-pdfs";
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.-]/g, "_");
+      const timestamp = Date.now();
+      let targetPath = `guest/opensolar/${timestamp}_${sanitizedFileName}`;
+
       const res = await processStoredOpenSolarPdfAction({
         bucket: bucketName,
-        path: returnedPath,
+        path: targetPath,
         fileName: file.name,
         fileSize: file.size,
         mimeType: file.type || "application/pdf",
         fileBase64: fileBase64,
       });
 
-      if (res.success && res.extraction) {
-        setUploadStep("PDF data extracted! Automatically creating customer record in database...");
-        try {
-          const { autoCreateCustomerFromExtraction } = await import("@/lib/repositories/customerRepository");
-          await autoCreateCustomerFromExtraction(res.extraction);
-        } catch (custErr) {
-          console.warn("Auto customer creation warning", custErr);
-        }
-        setUploadStep("Extraction complete");
-        setExtractionResult(res.extraction);
-      } else {
-        setErrorMessage(`Extraction Failed: ${res.error || "Could not extract data from stored OpenSolar PDF."}`);
+      if (!res.success || !res.extraction) {
+        setIsUploading(false);
+        setErrorMessage(`Extraction Failed: ${res.error || "Could not extract data from OpenSolar PDF."}`);
+        return;
       }
+
+      // 3. Attempt Supabase Storage upload & customer creation gracefully
+      setUploadStep("PDF data extracted! Uploading to storage and resolving customer profile...");
+      try {
+        const supabase = await getSupabaseClient();
+        const { data: userData } = await supabase.auth.getUser();
+
+        if (userData?.user) {
+          let companyId = "5c813b60-7b97-47c1-9457-11f98adfb9b7";
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("company_id")
+              .eq("id", userData.user.id)
+              .single();
+            if (profile?.company_id) companyId = profile.company_id;
+          } catch (pe) {}
+
+          targetPath = `${companyId}/opensolar/${timestamp}_${sanitizedFileName}`;
+
+          const { data: uploadData, error: uploadErr } = await supabase.storage
+            .from(bucketName)
+            .upload(targetPath, file, {
+              contentType: "application/pdf",
+              upsert: false,
+            });
+
+          if (!uploadErr && uploadData?.path) {
+            targetPath = uploadData.path;
+            if (res.extraction.normalised?.sourceDocument) {
+              res.extraction.normalised.sourceDocument.storagePath = targetPath;
+            }
+          }
+        }
+      } catch (storageErr) {
+        console.warn("Storage upload notice (proposal extraction preserved):", storageErr);
+      }
+
+      // 4. Auto-create customer record if applicable
+      try {
+        const { autoCreateCustomerFromExtraction } = await import("@/lib/repositories/customerRepository");
+        await autoCreateCustomerFromExtraction(res.extraction);
+      } catch (custErr) {
+        console.warn("Auto customer creation notice:", custErr);
+      }
+
+      setUploadStep("Extraction complete!");
+      setExtractionResult(res.extraction);
     } catch (err: any) {
-      setErrorMessage(`Upload Error: ${err.message || "Failed during Supabase Storage upload."}`);
+      console.error("PDF upload handler error:", err);
+      setErrorMessage(`Upload Error: ${err.message || "Failed to process OpenSolar PDF."}`);
     } finally {
       setIsUploading(false);
     }
