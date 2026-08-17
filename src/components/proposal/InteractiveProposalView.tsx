@@ -263,26 +263,26 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
   }, [proposal.galleryImages]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white">
       {/* Sticky Top Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 shadow-sm transition-all">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {!logoError && branding.logoUrl ? (
               <img
                 src={branding.logoUrl}
                 alt={branding.companyName}
                 onError={() => setLogoError(true)}
-                className="max-w-[160px] sm:max-w-[190px] w-auto max-h-10 object-contain"
+                className="max-w-[150px] sm:max-w-[180px] w-auto max-h-9 object-contain"
               />
             ) : (
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-emerald-600 text-white">
-                  <Sun className="w-5 h-5 text-amber-300 fill-amber-300" />
+                <div className="p-2 rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-950">
+                  <Sun className="w-4 h-4 text-amber-300 fill-amber-300" />
                 </div>
                 <div>
-                  <span className="font-bold tracking-tight text-lg text-slate-900">MADOLA</span>
-                  <span className="text-xs text-emerald-600 uppercase font-semibold ml-1 tracking-wider">
+                  <span className="font-extrabold tracking-tight text-base text-slate-900 dark:text-white">MADOLA</span>
+                  <span className="text-[10px] text-emerald-500 uppercase font-bold ml-1 tracking-wider">
                     ENERGY
                   </span>
                 </div>
@@ -290,18 +290,21 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
             )}
           </div>
 
-          <div className="hidden md:flex items-center gap-6 text-xs font-medium text-slate-600">
-            <a href="#section-system" className="hover:text-emerald-600 transition-colors">System</a>
-            <a href="#section-financials" className="hover:text-emerald-600 transition-colors">Financials</a>
-            <a href="#section-options" className="hover:text-emerald-600 transition-colors">Options</a>
-            <a href="#section-payment" className="hover:text-emerald-600 transition-colors">Payment</a>
-            <a href="#section-acceptance" className="hover:text-emerald-600 transition-colors">Acceptance</a>
+          {/* Quick Section Navigation Links */}
+          <div className="hidden lg:flex items-center gap-6 text-xs font-semibold text-slate-600 dark:text-slate-300">
+            <a href="#section-hero" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Overview</a>
+            <a href="#section-stats" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Key Metrics</a>
+            <a href="#section-hardware" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">System Hardware</a>
+            <a href="#section-performance" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Performance</a>
+            <a href="#section-financials" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Financial Return</a>
+            <a href="#section-options" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Options</a>
+            <a href="#section-payment" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Payment Schedule</a>
           </div>
 
           <div className="flex items-center gap-3">
             <a
               href="#section-acceptance"
-              className="px-4 py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-all flex items-center gap-1.5"
+              className="px-4 py-2.5 text-xs font-extrabold rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all flex items-center gap-1.5 min-h-[44px]"
             >
               <span>Accept Proposal</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -311,111 +314,155 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
       </header>
 
       {/* Main Document Content Container with Right Navigation Sidebar */}
-      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           {/* Main Left Proposal Column */}
           <div className="flex-1 min-w-0 space-y-12 w-full">
             {/* ========================================================================= */}
-            {/* SECTION 1 — COVER / PROPERTY */}
+            {/* SECTION 1 — HERO & COVER */}
             {/* ========================================================================= */}
-            <section id="section-cover" className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-xl space-y-6 text-slate-900 font-sans antialiased relative overflow-hidden">
-          {/* 1. TOP HEADER ROW: Solid Green Pill on LEFT, Madola Logo on RIGHT */}
-          <div className="flex items-center justify-between">
-            <div className="bg-emerald-500 text-white font-extrabold text-xs px-5 py-1.5 rounded-full shadow-sm uppercase tracking-wider">
-              Cover
-            </div>
+            <section id="section-hero" className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-6 sm:p-10 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 font-sans antialiased relative overflow-hidden animate-fade-in-up">
+              {/* Top Banner Row */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-extrabold text-xs tracking-wider uppercase">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Prepared Specifically For You</span>
+                </div>
 
-            <div className="flex items-center gap-2">
-              {!logoError && branding.logoUrl ? (
-                <img
-                  src={branding.logoUrl}
-                  alt={branding.companyName}
-                  onError={() => setLogoError(true)}
-                  className="h-9 max-w-[180px] w-auto object-contain"
-                />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-sm">
-                    <Zap className="w-4 h-4 fill-current" />
+                <div className="text-xs text-slate-500 font-medium">
+                  Ref: <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{proposal.reference}</span>
+                  {proposal.createdAt && (
+                    <span className="ml-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+                      Valid until {proposal.expiresAt || "30 Days"}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Main Proposal Headline */}
+              <div className="pt-2 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                  Madola Energy • UK Solar & Storage Proposal
+                </p>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50 leading-tight">
+                  {proposal.customer?.name === "[Customer Name]" ? "Personalised Solar Proposal" : `Solar Proposal for ${proposal.customer.name}`}
+                </h1>
+                {proposal.customer?.address && (
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium pt-1">
+                    <MapPin className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>{proposal.customer.address}</span>
                   </div>
-                  <span className="text-base font-black tracking-wider text-slate-900 uppercase">
-                    MADOLA ENERGY
+                )}
+              </div>
+
+              {/* Hero Image Banner */}
+              <div className="relative rounded-2xl overflow-hidden aspect-[16/9] sm:aspect-[21/9] border border-slate-200/80 dark:border-slate-800/80 shadow-md bg-slate-100 dark:bg-slate-950 group">
+                <img
+                  src={activeHeroImage || "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=1200&q=80"}
+                  alt="Solar Installation"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent flex items-end p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4 w-full">
+                    <div className="text-white">
+                      <p className="text-xs font-semibold text-emerald-300 uppercase tracking-wider">Recommended System</p>
+                      <p className="text-xl sm:text-2xl font-extrabold">{proposal.system.systemSizeKwp} kWp Solar & Battery Storage</p>
+                    </div>
+                    <a
+                      href="#section-stats"
+                      className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-extrabold text-xs shadow-lg shadow-emerald-950/50 transition-all hover:scale-105 active:scale-[0.98] flex items-center gap-1.5 min-h-[44px]"
+                    >
+                      <span>Explore Your Proposal</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Prepared By Advisor Card */}
+              <div className="pt-2 flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80">
+                <div className="flex items-center gap-3.5">
+                  <img
+                    src={activePreparedBy?.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"}
+                    alt="Advisor Avatar"
+                    className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500/50 shadow-sm shrink-0"
+                  />
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                      Prepared by {activePreparedBy?.name || "Neil Parry"}
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{activePreparedBy?.email || "nparry@madolaenergy.com"}</p>
+                  </div>
+                </div>
+                <div className="hidden sm:block text-right">
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1 rounded-full border border-emerald-500/20">
+                    MCS Certified Solar Advisor
                   </span>
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </section>
 
-          {/* 2. MAIN PROPOSAL TITLE */}
-          <div className="pt-2">
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
-              {proposal.customer?.name === "[Customer Name]" ? "Madola TEMPLATE" : `Proposal for ${proposal.customer.name}`}
-            </h1>
-          </div>
+            {/* ========================================================================= */}
+            {/* SECTION 2 — KEY SYSTEM STATISTICS */}
+            {/* ========================================================================= */}
+            <section id="section-stats" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Key Proposal Metrics</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Data-driven performance summary tailored to your property</p>
+                </div>
+              </div>
 
-          {/* 3. HERO IMAGE BANNER */}
-          <div className="relative rounded-2xl overflow-hidden aspect-[16/9] sm:aspect-[21/9] border border-slate-200/80 shadow-md bg-slate-100 group">
-            <img
-              src={activeHeroImage || "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=1200&q=80"}
-              alt="Solar Rooftop Engineers"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-            />
-          </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* System Size */}
+                <div className="madola-card madola-card-hover p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl space-y-1">
+                  <div className="flex items-center justify-between text-amber-500">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">System Size</span>
+                    <Sun className="w-4 h-4 fill-amber-400 text-amber-500" />
+                  </div>
+                  <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight">
+                    {proposal.system.systemSizeKwp} <span className="text-sm font-bold text-slate-500">kWp</span>
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{proposal.system.panelCount} Solar Panels</p>
+                </div>
 
-          {/* 4. PREPARED BY AUTHOR SECTION */}
-          <div className="pt-1 flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-            <img
-              src={activePreparedBy?.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"}
-              alt="Advisor Avatar"
-              className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500/50 shadow-sm shrink-0"
-            />
-            <div>
-              <h4 className="font-extrabold text-sm text-slate-900">
-                Prepared by {activePreparedBy?.name || "Neil Parry"}
-              </h4>
-              <p className="text-xs text-slate-500 font-medium">{activePreparedBy?.email || "nparry@madolaenergy.com"}</p>
-              <span className="text-[11px] text-slate-400 font-medium hover:text-emerald-600 transition-colors block cursor-pointer">
-                Click to learn more about me
-              </span>
-            </div>
-          </div>
+                {/* Annual Generation */}
+                <div className="madola-card madola-card-hover p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl space-y-1">
+                  <div className="flex items-center justify-between text-emerald-500">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Annual Output</span>
+                    <Zap className="w-4 h-4 fill-emerald-500" />
+                  </div>
+                  <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight">
+                    {proposal.system.annualGenerationKwh.toLocaleString()} <span className="text-sm font-bold text-slate-500">kWh</span>
+                  </p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">Clean Solar Generation</p>
+                </div>
 
-          {/* 5. GREETING & INTRO LETTER COPY */}
-          <div className="space-y-3 pt-3 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100">
-            <p className="font-bold text-slate-900 text-sm">
-              Hi {proposal.customer?.name === "[Customer Name]" ? "" : proposal.customer.name},
-            </p>
+                {/* Energy Independence */}
+                <div className="madola-card madola-card-hover p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl space-y-1">
+                  <div className="flex items-center justify-between text-teal-500">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Independence</span>
+                    <Battery className="w-4 h-4 text-teal-500" />
+                  </div>
+                  <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight">
+                    {proposal.performance.selfSufficiencyPercent}%
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Off-Grid Self Sufficiency</p>
+                </div>
 
-            <p>
-              Thanks for your enquiry and for considering Madola Energy for your solar and battery installation.
-            </p>
-            <p>
-              We've prepared this proposal based on what we've discussed, with a system designed around your property, your energy usage and what you're looking to achieve.
-            </p>
-            <p>
-              Inside, you'll find your recommended system, product information, pricing and the next steps if you'd like to move forward.
-            </p>
-            <p>
-              Take a look through everything, and if you have any questions or want to talk through the options, we'll be happy to help.
-            </p>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* SECTION 2 — INTRODUCTION */}
-        {/* ========================================================================= */}
-        <section id="section-intro" className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-sm space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-1.5 h-6 bg-emerald-600 rounded-full" />
-            <h2 className="text-2xl font-bold text-slate-900">Welcome to Your Solar Journey</h2>
-          </div>
-          <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-            Dear <span className="font-semibold text-slate-900">{proposal.customer.name}</span>, thank you for considering Madola Energy for your clean energy transformation. This interactive proposal details our bespoke solar PV and battery storage recommendation engineered specifically for your property at <span className="font-semibold text-slate-900">{proposal.customer.address}</span>.
-          </p>
-          <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-            Our technical design maximizes your property’s solar generation potential while minimizing grid dependence. Inside, you will find itemized specifications, performance simulations, financial return metrics, optional upgrade selections, and your digital acceptance agreement.
-          </p>
-        </section>
+                {/* First-Year Savings */}
+                <div className="madola-card madola-card-hover p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl space-y-1">
+                  <div className="flex items-center justify-between text-emerald-600">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Year 1 Savings</span>
+                    <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight">
+                    £{proposal.financials.firstYearSavings.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Grid Savings & SEG Tariff</p>
+                </div>
+              </div>
+            </section>
 
         {/* ========================================================================= */}
         {/* ========================================================================= */}
@@ -710,63 +757,66 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 8 — PRODUCT HIGHLIGHTS */}
+        {/* SECTION 5 — SYSTEM HARDWARE */}
         {/* ========================================================================= */}
-        <section className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-sm space-y-6">
-          <h2 className="text-xl font-bold text-slate-900">System Hardware Highlights</h2>
+        <section id="section-hardware" className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-6 sm:p-10 shadow-sm space-y-6">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">System Hardware Highlights</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Premium MCS-certified components specified for long-term durability</p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Panels */}
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+            <div className="madola-card madola-card-hover p-6 rounded-2xl bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between">
               <div className="space-y-3">
-                <div className="inline-flex p-2.5 rounded-xl bg-amber-100 text-amber-700">
-                  <Sun className="w-6 h-6 fill-amber-500" />
+                <div className="inline-flex p-3 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <Sun className="w-6 h-6 fill-amber-400" />
                 </div>
-                <h3 className="font-bold text-slate-900 text-base">{proposal.system.panelManufacturer}</h3>
-                <p className="text-xs font-semibold text-slate-600">{proposal.system.panelModel}</p>
-                <p className="text-xs text-slate-500 leading-relaxed">
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{proposal.system.panelManufacturer}</h3>
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{proposal.system.panelModel}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                   High efficiency N-Type TOPCon panels engineered for optimal performance in UK light conditions.
                 </p>
               </div>
-              <div className="pt-4 mt-4 border-t border-slate-200 flex justify-between text-xs text-slate-600 font-semibold">
+              <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between text-xs text-slate-600 dark:text-slate-300 font-bold">
                 <span>Warranty</span>
-                <span className="text-emerald-600">25 Years</span>
+                <span className="text-emerald-600 dark:text-emerald-400">25 Years</span>
               </div>
             </div>
 
             {/* Inverter */}
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+            <div className="madola-card madola-card-hover p-6 rounded-2xl bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between">
               <div className="space-y-3">
-                <div className="inline-flex p-2.5 rounded-xl bg-emerald-100 text-emerald-700">
+                <div className="inline-flex p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                   <Zap className="w-6 h-6" />
                 </div>
-                <h3 className="font-bold text-slate-900 text-base">{proposal.system.inverterManufacturer}</h3>
-                <p className="text-xs font-semibold text-slate-600">{proposal.system.inverterModel}</p>
-                <p className="text-xs text-slate-500 leading-relaxed">
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{proposal.system.inverterManufacturer}</h3>
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{proposal.system.inverterModel}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                   Bespoke hybrid inverter with EPS emergency backup capability and dual MPPT tracking.
                 </p>
               </div>
-              <div className="pt-4 mt-4 border-t border-slate-200 flex justify-between text-xs text-slate-600 font-semibold">
+              <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between text-xs text-slate-600 dark:text-slate-300 font-bold">
                 <span>Warranty</span>
-                <span className="text-emerald-600">{proposal.system.inverterWarranty}</span>
+                <span className="text-emerald-600 dark:text-emerald-400">{proposal.system.inverterWarranty}</span>
               </div>
             </div>
 
             {/* Battery */}
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+            <div className="madola-card madola-card-hover p-6 rounded-2xl bg-slate-50/80 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between">
               <div className="space-y-3">
-                <div className="inline-flex p-2.5 rounded-xl bg-slate-900 text-white">
+                <div className="inline-flex p-3 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white">
                   <Battery className="w-6 h-6" />
                 </div>
-                <h3 className="font-bold text-slate-900 text-base">{proposal.system.batteryManufacturer}</h3>
-                <p className="text-xs font-semibold text-slate-600">{proposal.system.batteryModel}</p>
-                <p className="text-xs text-slate-500 leading-relaxed">
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{proposal.system.batteryManufacturer}</h3>
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{proposal.system.batteryModel}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                   Safe LFP (Lithium Iron Phosphate) battery chemistry with high depth of discharge.
                 </p>
               </div>
-              <div className="pt-4 mt-4 border-t border-slate-200 flex justify-between text-xs text-slate-600 font-semibold">
+              <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between text-xs text-slate-600 dark:text-slate-300 font-bold">
                 <span>Warranty</span>
-                <span className="text-emerald-600">{proposal.system.batteryWarranty}</span>
+                <span className="text-emerald-600 dark:text-emerald-400">{proposal.system.batteryWarranty}</span>
               </div>
             </div>
           </div>
