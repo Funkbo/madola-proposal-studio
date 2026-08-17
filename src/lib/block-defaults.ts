@@ -98,42 +98,55 @@ export function createDefaultProposal(): BlockProposal {
     {
       id: "block-3-text-intro",
       type: "text",
-      title: "3. Executive Summary",
+      title: "Text",
       order: 3,
       enabled: true,
       data: {
-        heading: "Tailored Energy Independence",
-        bodyText:
-          "Our engineering team has designed a system tailored to your property orientation and electricity consumption profile. By combining high-efficiency solar modules with intelligent battery storage, your property will generate clean electricity during peak daylight hours and store excess energy for evening use.",
-        bulletPoints: [
-          "Dramatically reduce electricity import from your grid energy supplier.",
-          "Protect your household against future energy tariff inflation.",
-          "Earn revenue by exporting surplus electricity back to the grid via the Smart Export Guarantee (SEG).",
-          "Monitor live generation, consumption, and storage status from your smartphone.",
-        ],
+        pillBadge: "Text",
+        heading: "Trustpilot review widget",
+        isTrustpilot: true,
       },
     },
     {
       id: "block-4-our-work",
       type: "our_work",
-      title: "4. Our Work Gallery",
+      title: "Our Work",
       order: 4,
       enabled: true,
       data: {
-        title: "Recent UK Installations",
-        description: "A preview of our recent premium solar array and battery storage projects across the UK.",
-        mainImage: {
-          url: "https://images.unsplash.com/photo-1508873696983-2df515122519?auto=format&fit=crop&w=1000&q=80",
-          caption: "5.4 kW In-Roof All-Black Solar Array — Surrey, UK",
-        },
-        supportingImages: [
+        pillBadge: "Our Work",
+        description:
+          "Madola Energy has installed over 10,000 solar systems since 2013 — more than 100,000 panels across homes, commercial sites and utility-scale projects nationwide.",
+        images: [
           {
-            url: "https://images.unsplash.com/photo-1613665813446-82a78c468a1d?auto=format&fit=crop&w=600&q=80",
-            caption: "Dual-MPPT Hybrid Inverter & LFP Battery Installation",
+            url: "https://images.unsplash.com/photo-1508873696983-2df515122519?auto=format&fit=crop&w=1200&q=80",
+            title: "Residential All-Black Solar Installation",
+            location: "Surrey, UK",
+            type: "Residential",
           },
           {
-            url: "https://images.unsplash.com/photo-1548611635-b6e7827d7d4a?auto=format&fit=crop&w=600&q=80",
-            caption: "Integrated EV Smart Charger with Solar Surge Charging",
+            url: "https://images.unsplash.com/photo-1559302504-64aae6ca6b6d?auto=format&fit=crop&w=800&q=80",
+            title: "Solar Canopy Carport & EV Charging Hub",
+            location: "Commercial Site, Midlands",
+            type: "Carport & EV",
+          },
+          {
+            url: "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=800&q=80",
+            title: "Commercial Utility-Scale Rooftop Array",
+            location: "Industrial Park, Hampshire",
+            type: "Commercial",
+          },
+          {
+            url: "https://images.unsplash.com/photo-1613665813446-82a78c468a1d?auto=format&fit=crop&w=800&q=80",
+            title: "High-Yield Monocrystalline Array with Hybrid Inverter",
+            location: "Oxfordshire, UK",
+            type: "Solar & Battery",
+          },
+          {
+            url: "https://images.unsplash.com/photo-1592833159155-c62df1b65634?auto=format&fit=crop&w=800&q=80",
+            title: "Terracotta In-Roof Integrated Solar Tiles",
+            location: "Cotswolds Heritage Build",
+            type: "In-Roof Tiles",
           },
         ],
       },

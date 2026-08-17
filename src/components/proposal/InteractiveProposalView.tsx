@@ -637,57 +637,280 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
         {/* ========================================================================= */}
         {/* SECTION 5 — TRUSTPILOT REVIEW WIDGET */}
         {/* ========================================================================= */}
-        <section className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600 font-extrabold text-2xl">
-              4.9★
+        <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 font-sans antialiased">
+          {/* Top Header Row */}
+          <div className="flex items-center justify-between -mx-8 sm:-mx-12 -mt-4 mb-2">
+            <div
+              className="text-white font-bold text-xs px-5 py-2 rounded-r-full shadow-sm tracking-wider uppercase"
+              style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+            >
+              Text
             </div>
-            <div>
-              <div className="flex items-center gap-1 text-emerald-500">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-emerald-500" />
-                ))}
-              </div>
-              <h3 className="font-bold text-slate-900 text-sm mt-0.5">Excellent Trustpilot Rating</h3>
-              <p className="text-xs text-slate-500">Based on verified UK homeowner installations</p>
+
+            <div className="flex items-center gap-2 pr-8 sm:pr-12">
+              {!logoError && branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl}
+                  alt={branding.companyName}
+                  onError={() => setLogoError(true)}
+                  className="h-8 max-w-[160px] object-contain"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm"
+                    style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+                  >
+                    <Zap className="w-4 h-4 fill-current" />
+                  </div>
+                  <span className="text-base font-black tracking-wider text-slate-900 dark:text-slate-50 uppercase">
+                    {branding.companyName}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
-          <blockquote className="text-xs text-slate-600 italic border-l-2 border-emerald-500 pl-4 max-w-md">
-            "Madola Energy completed our 12-panel installation in a single day. The battery storage has slashed our winter energy bills significantly!"
-          </blockquote>
+
+          <div className="pt-1">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight leading-tight">
+              Trustpilot review widget
+            </h2>
+          </div>
+
+          {/* Trustpilot Score Summary Bar */}
+          <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-[#00b67a] text-white flex items-center justify-center font-black text-xl shadow-md shrink-0">
+                ★
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-slate-900 dark:text-slate-100 text-lg">Excellent</span>
+                  <div className="flex items-center gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="w-5 h-5 bg-[#00b67a] text-white flex items-center justify-center text-xs font-bold rounded-sm">
+                        ★
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  TrustScore <strong className="text-slate-800 dark:text-slate-200 font-bold">4.9</strong> | <strong className="text-slate-800 dark:text-slate-200 font-bold">450+</strong> verified UK reviews
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-bold text-[#00b67a] bg-[#00b67a]/10 px-4 py-2 rounded-xl border border-[#00b67a]/20">
+              <span>★ Trustpilot Verified</span>
+            </div>
+          </div>
+
+          {/* Review Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-sm flex flex-col justify-between space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="w-3.5 h-3.5 bg-[#00b67a] text-white flex items-center justify-center text-[9px] font-bold rounded-sm">★</div>
+                    ))}
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Verified Homeowner
+                  </span>
+                </div>
+                <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100">"Outstanding service & quality"</h4>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Madola Energy completed our 12-panel installation in a single day. Neil and the team were professional, clean, and our system generated 28 kWh on the first sunny day!
+                </p>
+              </div>
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px]">
+                <span className="font-bold text-slate-800 dark:text-slate-200">David R.</span>
+                <span className="text-slate-400">Surrey, UK</span>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-sm flex flex-col justify-between space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="w-3.5 h-3.5 bg-[#00b67a] text-white flex items-center justify-center text-[9px] font-bold rounded-sm">★</div>
+                    ))}
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Verified Customer
+                  </span>
+                </div>
+                <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100">"Slashed our bills from month one"</h4>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  The 5.4kW solar + 9.4kWh battery storage setup has been incredible. Electric bills dropped from £280/mo to under £45/mo with the intelligent mobile app.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px]">
+                <span className="font-bold text-slate-800 dark:text-slate-200">Sarah M.</span>
+                <span className="text-slate-400">Richmond, Surrey</span>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-sm flex flex-col justify-between space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="w-3.5 h-3.5 bg-[#00b67a] text-white flex items-center justify-center text-[9px] font-bold rounded-sm">★</div>
+                    ))}
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Verified Customer
+                  </span>
+                </div>
+                <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100">"Prompt MCS & DNO paperwork"</h4>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Neil guided us through every step. No high pressure, transparent pricing, and MCS certificates promptly registered for SEG grid export payments.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px]">
+                <span className="font-bold text-slate-800 dark:text-slate-200">James K.</span>
+                <span className="text-slate-400">London, UK</span>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 6 — INSTALLATION GALLERY */}
+        {/* SECTION 6 — OUR WORK GALLERY */}
         {/* ========================================================================= */}
-        <section className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-sm space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">Installation Quality Gallery</h2>
-              <p className="text-xs text-slate-500">Recent Madola Energy installations across the UK</p>
+        <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 shadow-lg space-y-6 text-slate-900 dark:text-slate-100 font-sans antialiased">
+          {/* Top Header Row */}
+          <div className="flex items-center justify-between -mx-8 sm:-mx-12 -mt-4 mb-2">
+            <div
+              className="text-white font-bold text-xs px-5 py-2 rounded-r-full shadow-sm tracking-wider uppercase"
+              style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+            >
+              Our Work
+            </div>
+
+            <div className="flex items-center gap-2 pr-8 sm:pr-12">
+              {!logoError && branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl}
+                  alt={branding.companyName}
+                  onError={() => setLogoError(true)}
+                  className="h-8 max-w-[160px] object-contain"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm"
+                    style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
+                  >
+                    <Zap className="w-4 h-4 fill-current" />
+                  </div>
+                  <span className="text-base font-black tracking-wider text-slate-900 dark:text-slate-50 uppercase">
+                    {branding.companyName}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {activeGalleryImages.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => setLightboxImage(img)}
-                className="group relative rounded-2xl overflow-hidden aspect-square border border-slate-200 bg-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          <div className="pt-2">
+            <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 leading-relaxed max-w-4xl">
+              Madola Energy has installed over 10,000 solar systems since 2013 — more than 100,000 panels across homes, commercial sites and utility-scale projects nationwide.
+            </p>
+          </div>
+
+          {/* 5-Photo Collage Grid Matching Screenshot */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 pt-2">
+            {/* Left Large Portrait Image */}
+            <div
+              onClick={() => setLightboxImage("https://images.unsplash.com/photo-1508873696983-2df515122519?auto=format&fit=crop&w=1200&q=80")}
+              className="md:col-span-6 group relative rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-md bg-slate-100 dark:bg-slate-800 cursor-pointer min-h-[380px] md:min-h-[440px]"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1508873696983-2df515122519?auto=format&fit=crop&w=1200&q=80"
+                alt="Residential Solar Installation"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5 text-white">
+                <p className="font-bold text-sm">Residential All-Black Solar Installation</p>
+                <p className="text-xs text-slate-300">Surrey, UK</p>
+              </div>
+            </div>
+
+            {/* Right 4-Image 2x2 Grid */}
+            <div className="md:col-span-6 grid grid-cols-2 gap-4">
+              <div
+                onClick={() => setLightboxImage("https://images.unsplash.com/photo-1559302504-64aae6ca6b6d?auto=format&fit=crop&w=800&q=80")}
+                className="group relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm bg-slate-100 dark:bg-slate-800 cursor-pointer aspect-square sm:aspect-auto sm:h-[212px]"
               >
-                <img src={img} alt={`Installation ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                <div className="absolute inset-0 bg-slate-900/20 group-hover:bg-slate-900/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                  <ExternalLink className="w-5 h-5 text-white" />
+                <img
+                  src="https://images.unsplash.com/photo-1559302504-64aae6ca6b6d?auto=format&fit=crop&w=800&q=80"
+                  alt="Solar Carport Installation"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+
+              <div
+                onClick={() => setLightboxImage("https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=800&q=80")}
+                className="group relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm bg-slate-100 dark:bg-slate-800 cursor-pointer aspect-square sm:aspect-auto sm:h-[212px]"
+              >
+                <img
+                  src="https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=800&q=80"
+                  alt="Commercial Solar Array"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+
+              <div
+                onClick={() => setLightboxImage("https://images.unsplash.com/photo-1613665813446-82a78c468a1d?auto=format&fit=crop&w=800&q=80")}
+                className="group relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm bg-slate-100 dark:bg-slate-800 cursor-pointer aspect-square sm:aspect-auto sm:h-[212px]"
+              >
+                <img
+                  src="https://images.unsplash.com/photo-1613665813446-82a78c468a1d?auto=format&fit=crop&w=800&q=80"
+                  alt="Commercial Rooftop Installation"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+
+              <div
+                onClick={() => setLightboxImage("https://images.unsplash.com/photo-1592833159155-c62df1b65634?auto=format&fit=crop&w=800&q=80")}
+                className="group relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm bg-slate-100 dark:bg-slate-800 cursor-pointer aspect-square sm:aspect-auto sm:h-[212px]"
+              >
+                <img
+                  src="https://images.unsplash.com/photo-1592833159155-c62df1b65634?auto=format&fit=crop&w=800&q=80"
+                  alt="In-Roof Integrated Tiles"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute bottom-3 right-3 z-10">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLightboxImage("https://images.unsplash.com/photo-1508873696983-2df515122519?auto=format&fit=crop&w=1200&q=80");
+                    }}
+                    className="px-3 py-1.5 rounded-full bg-white/95 text-slate-900 font-bold text-[11px] border border-emerald-500 shadow-lg hover:bg-white transition-all flex items-center gap-1.5"
+                  >
+                    <span>Show all photos</span>
+                  </button>
                 </div>
-              </button>
-            ))}
+              </div>
+            </div>
           </div>
 
           {/* Lightbox Modal */}
           {lightboxImage && (
-            <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur flex items-center justify-center p-4" onClick={() => setLightboxImage(null)}>
-              <div className="max-w-3xl max-h-[85vh] rounded-2xl overflow-hidden shadow-2xl relative">
-                <img src={lightboxImage} alt="Expanded Installation" className="w-full h-full object-contain" />
+            <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setLightboxImage(null)}>
+              <div className="max-w-4xl max-h-[85vh] rounded-3xl overflow-hidden shadow-2xl relative border border-slate-800 bg-black" onClick={(e) => e.stopPropagation()}>
+                <img src={lightboxImage} alt="Expanded Installation" className="w-full h-full object-contain max-h-[75vh]" />
+                <button
+                  type="button"
+                  onClick={() => setLightboxImage(null)}
+                  className="absolute top-4 right-4 p-2 rounded-xl bg-black/60 text-white hover:bg-black transition-colors"
+                >
+                  ✕
+                </button>
               </div>
             </div>
           )}
