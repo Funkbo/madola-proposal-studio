@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { CompanyBrandingSettings } from "./CompanyBrandingSettings";
 import { UserManagementSettings } from "./UserManagementSettings";
 import { ProposalSettings } from "./ProposalSettings";
-import { Building2, Users, FileSliders, ShieldAlert } from "lucide-react";
+import { Building2, Users, FileSliders } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 interface SettingsContainerProps {
@@ -47,9 +47,17 @@ export function SettingsContainer({ currentUserProfile }: SettingsContainerProps
           onClick={() => handleTabChange("branding")}
           className={`flex items-center gap-2 px-4 py-3 text-xs font-extrabold border-b-2 transition-all whitespace-nowrap ${
             activeTab === "branding"
-              ? "border-[var(--brand-primary,#10b981)] text-[var(--brand-primary,#10b981)]"
+              ? "text-[var(--brand-primary,#10b981)]"
               : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
           }`}
+          style={
+            activeTab === "branding"
+              ? {
+                  borderColor: "var(--brand-primary, #10b981)",
+                  color: "var(--brand-primary, #10b981)",
+                }
+              : {}
+          }
         >
           <Building2 className="w-4 h-4" />
           <span>Company & Branding</span>
@@ -59,9 +67,17 @@ export function SettingsContainer({ currentUserProfile }: SettingsContainerProps
           onClick={() => handleTabChange("users")}
           className={`flex items-center gap-2 px-4 py-3 text-xs font-extrabold border-b-2 transition-all whitespace-nowrap ${
             activeTab === "users"
-              ? "border-[var(--brand-primary,#10b981)] text-[var(--brand-primary,#10b981)]"
+              ? "text-[var(--brand-primary,#10b981)]"
               : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
           }`}
+          style={
+            activeTab === "users"
+              ? {
+                  borderColor: "var(--brand-primary, #10b981)",
+                  color: "var(--brand-primary, #10b981)",
+                }
+              : {}
+          }
         >
           <Users className="w-4 h-4" />
           <span>User Management</span>
@@ -80,9 +96,17 @@ export function SettingsContainer({ currentUserProfile }: SettingsContainerProps
           onClick={() => handleTabChange("defaults")}
           className={`flex items-center gap-2 px-4 py-3 text-xs font-extrabold border-b-2 transition-all whitespace-nowrap ${
             activeTab === "defaults"
-              ? "border-[var(--brand-primary,#10b981)] text-[var(--brand-primary,#10b981)]"
+              ? "text-[var(--brand-primary,#10b981)]"
               : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
           }`}
+          style={
+            activeTab === "defaults"
+              ? {
+                  borderColor: "var(--brand-primary, #10b981)",
+                  color: "var(--brand-primary, #10b981)",
+                }
+              : {}
+          }
         >
           <FileSliders className="w-4 h-4" />
           <span>Proposal Defaults</span>

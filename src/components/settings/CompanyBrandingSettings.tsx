@@ -88,6 +88,9 @@ export function CompanyBrandingSettings() {
     setFormData((prev) => {
       const updated = { ...prev, [field]: value };
       applyThemeCssVariables(updated);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("madola_theme_preview", { detail: updated }));
+      }
       return updated;
     });
   };
@@ -101,6 +104,9 @@ export function CompanyBrandingSettings() {
         sidebarBackgroundColor: preset.sidebar,
       };
       applyThemeCssVariables(updated);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("madola_theme_preview", { detail: updated }));
+      }
       return updated;
     });
   };

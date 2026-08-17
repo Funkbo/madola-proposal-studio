@@ -52,7 +52,7 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
 
     syncBranding();
 
-    // Subscribe to Supabase Auth state transitions (SIGNED_IN, SIGNED_OUT, etc.)
+    // Subscribe to Supabase Auth state transitions
     let authSubscription: { unsubscribe: () => void } | null = null;
     getSupabaseClient().then((supabase) => {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -74,7 +74,16 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
       syncBranding();
     };
 
+    const handleLivePreview = (e: Event) => {
+      const customEvt = e as CustomEvent<CompanyBrandingData>;
+      if (customEvt.detail && isMounted) {
+        setBranding(customEvt.detail);
+        applyThemeCssVariables(customEvt.detail);
+      }
+    };
+
     window.addEventListener("madola_branding_updated", handleUpdate);
+    window.addEventListener("madola_theme_preview", handleLivePreview);
 
     return () => {
       isMounted = false;
@@ -82,6 +91,7 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
         authSubscription.unsubscribe();
       }
       window.removeEventListener("madola_branding_updated", handleUpdate);
+      window.removeEventListener("madola_theme_preview", handleLivePreview);
     };
   }, [pathname]);
 
