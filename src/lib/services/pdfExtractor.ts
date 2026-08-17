@@ -176,31 +176,50 @@ export async function parseOpenSolarPdfBuffer(pdfBuffer: Buffer): Promise<Extrac
     console.warn("Could not extract images from PDF buffer", e);
   }
 
+  // 1. Try unpdf extractText (Primary Serverless PDF text extractor)
   try {
-    let pdfParseModule: any;
-    try {
-      pdfParseModule = require("pdf-parse");
-    } catch (e) {
-      pdfParseModule = await import("pdf-parse");
+    const { extractText } = await import("unpdf");
+    const unpdfResult: any = await extractText(new Uint8Array(pdfBuffer));
+    let extractedStr = "";
+    if (typeof unpdfResult?.text === "string") {
+      extractedStr = unpdfResult.text;
+    } else if (Array.isArray(unpdfResult?.text)) {
+      extractedStr = unpdfResult.text.join("\n");
+    } else if (Array.isArray(unpdfResult?.totalPages)) {
+      extractedStr = unpdfResult.totalPages.map((p: any) => (typeof p === "string" ? p : p.text || "")).join("\n");
     }
 
-    const pdfFn = typeof pdfParseModule === "function" ? pdfParseModule : pdfParseModule?.default;
-    if (typeof pdfFn === "function") {
-      const parsed = await pdfFn(pdfBuffer);
-      if (typeof parsed === "string") {
-        text = parsed;
-      } else if (parsed && typeof parsed.text === "string") {
-        text = parsed.text;
-      } else if (parsed && Array.isArray(parsed.pages)) {
-        text = parsed.pages.map((p: any) => p.text || "").join("\n");
-      }
+    if (extractedStr && extractedStr.trim().length > 30) {
+      text = extractedStr;
     }
-  } catch (err) {
-    console.warn("pdf-parse module extraction notice (will fallback to raw PDF stream parser):", err);
+  } catch (unpdfErr) {
+    console.warn("unpdf extraction notice:", unpdfErr);
   }
 
-  // Fallback to raw PDF stream parser if main pdf-parse text is empty
-  if (!text || text.trim().length < 50) {
+  // 2. Fallback to pdf-parse if unpdf text is short
+  if (!text || text.trim().length < 30) {
+    try {
+      let pdfParseModule: any;
+      try {
+        pdfParseModule = require("pdf-parse");
+      } catch (e) {
+        pdfParseModule = await import("pdf-parse");
+      }
+
+      const pdfFn = typeof pdfParseModule === "function" ? pdfParseModule : pdfParseModule?.default;
+      if (typeof pdfFn === "function") {
+        const parsed = await pdfFn(pdfBuffer);
+        if (parsed && typeof parsed.text === "string" && parsed.text.length > text.length) {
+          text = parsed.text;
+        }
+      }
+    } catch (pdfParseErr) {
+      console.warn("pdf-parse fallback notice:", pdfParseErr);
+    }
+  }
+
+  // 3. Fallback to raw PDF stream parser if text is still short
+  if (!text || text.trim().length < 30) {
     const rawExtractedText = extractRawPdfTextStrings(pdfBuffer);
     if (rawExtractedText && rawExtractedText.length > text.length) {
       text = rawExtractedText;
