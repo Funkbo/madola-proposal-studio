@@ -58,26 +58,68 @@ export default function NewProposalPage() {
 
     setIsUploading(true);
     setErrorMessage(null);
-    setUploadStep("Uploading PDF & extracting OpenSolar proposal data...");
+    setUploadStep("Reading PDF in browser...");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      // 1. Extract PDF text entirely in the browser using unpdf (pure JS, no server upload needed)
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let extractedText = "";
 
-      const response = await fetch("/api/extract-pdf", {
-        method: "POST",
-        body: formData,
+      try {
+        const { extractText } = await import("unpdf");
+        const unpdfResult: any = await extractText(bytes);
+        if (typeof unpdfResult?.text === "string") {
+          extractedText = unpdfResult.text;
+        } else if (Array.isArray(unpdfResult?.text)) {
+          extractedText = unpdfResult.text.join("\n");
+        }
+      } catch (unpdfErr) {
+        console.warn("Browser unpdf extraction notice:", unpdfErr);
+      }
+
+      // 2. Fallback: decode raw PDF strings from uncompressed parenthetical text
+      if (!extractedText || extractedText.trim().length < 30) {
+        const decoder = new TextDecoder("latin1");
+        const rawStr = decoder.decode(bytes);
+        const parts: string[] = [];
+        const re = /\(([^()\r\n]{2,200})\)/g;
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(rawStr)) !== null) {
+          const cleaned = m[1].replace(/\\([()\\])/g, "$1").trim();
+          if (cleaned.length > 1 && !/^[\x00-\x1F]+$/.test(cleaned)) {
+            parts.push(cleaned);
+          }
+        }
+        if (parts.length > 0) {
+          extractedText = parts.join("\n");
+        }
+      }
+
+      if (!extractedText || extractedText.trim().length < 10) {
+        setIsUploading(false);
+        setErrorMessage("Could not read text from PDF. Please ensure this is a valid OpenSolar proposal PDF.");
+        return;
+      }
+
+      // 3. Send ONLY the extracted text (~few KB) to server action (bypasses Vercel 4.5MB body limit)
+      setUploadStep("Analysing extracted proposal data...");
+      const res = await processStoredOpenSolarPdfAction({
+        bucket: "proposal-pdfs",
+        path: `browser/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9_.-]/g, "_")}`,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type || "application/pdf",
+        fallbackText: extractedText,
       });
 
-      const res = await response.json();
-
-      if (!response.ok || !res.success || !res.extraction) {
+      if (!res.success || !res.extraction) {
         setIsUploading(false);
         setErrorMessage(`Extraction Failed: ${res.error || "Could not extract data from OpenSolar PDF."}`);
         return;
       }
 
-      // Synchronize customer profile
+      // 4. Synchronize customer profile
       setUploadStep("Data extracted! Synchronizing customer profile...");
       try {
         const { autoCreateCustomerFromExtraction } = await import("@/lib/repositories/customerRepository");
