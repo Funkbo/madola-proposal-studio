@@ -30,14 +30,44 @@ export function deleteLocalProposalStorage(id: string) {
     if (interactiveCache) {
       const parsed = JSON.parse(interactiveCache);
       if (typeof parsed === "object" && parsed !== null) {
-        delete parsed[id];
+        Object.keys(parsed).forEach((k) => {
+          const item = parsed[k];
+          if (
+            k === id ||
+            item?.id === id ||
+            item?.reference === id ||
+            item?.publicToken === id ||
+            item?.publicSlug === id
+          ) {
+            delete parsed[k];
+          }
+        });
         localStorage.setItem("madola_interactive_proposals_cache", JSON.stringify(parsed));
       }
     }
 
     if ((window as any).__MADOLA_PROPOSALS_CACHE__) {
-      delete (window as any).__MADOLA_PROPOSALS_CACHE__[id];
+      const mem = (window as any).__MADOLA_PROPOSALS_CACHE__;
+      Object.keys(mem).forEach((k) => {
+        const item = mem[k];
+        if (
+          k === id ||
+          item?.id === id ||
+          item?.reference === id ||
+          item?.publicToken === id ||
+          item?.publicSlug === id
+        ) {
+          delete mem[k];
+        }
+      });
     }
+
+    // Purge any individual item keys
+    Object.keys(localStorage).forEach((key) => {
+      if (key.includes(id)) {
+        localStorage.removeItem(key);
+      }
+    });
   } catch (e) {
     console.error("Error purging local proposal storage:", e);
   }

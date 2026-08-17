@@ -10,15 +10,21 @@ export async function getSupabaseClient() {
 
   if (typeof window === "undefined") {
     const { createServerClient } = await import("@supabase/ssr");
-    const { cookies } = await import("next/headers");
-    const cookieStore = await cookies();
+    let cookieStore: any = null;
+    try {
+      const { cookies } = await import("next/headers");
+      cookieStore = await cookies();
+    } catch {
+      // Outside active request store context
+    }
 
     return createServerClient(url, key, {
       cookies: {
         getAll() {
-          return cookieStore.getAll();
+          return cookieStore ? cookieStore.getAll() : [];
         },
         setAll(cookiesToSet) {
+          if (!cookieStore) return;
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
