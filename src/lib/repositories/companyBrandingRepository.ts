@@ -59,14 +59,26 @@ export function applyThemeCssVariables(data: Partial<CompanyBrandingData>) {
   if (typeof document === "undefined") return;
 
   const root = document.documentElement;
-  root.style.setProperty("--brand-primary", data.primaryColor || "#10b981");
-  root.style.setProperty("--brand-secondary", data.secondaryColor || "#0f172a");
-  root.style.setProperty("--brand-sidebar-background", data.sidebarBackgroundColor || "#0b1428");
-  root.style.setProperty("--brand-sidebar-text", data.sidebarTextColor || "#ffffff");
-  root.style.setProperty("--brand-login-background", data.loginBackgroundColor || "#f5f7f6");
-  root.style.setProperty("--brand-login-card", data.loginCardColor || "#ffffff");
-  root.style.setProperty("--brand-button", data.buttonColor || "#10b981");
-  root.style.setProperty("--brand-button-text", data.buttonTextColor || "#ffffff");
+  const primary = data.primaryColor || "#10b981";
+  const secondary = data.secondaryColor || "#0f172a";
+  const sidebarBg = data.sidebarBackgroundColor || "#0b1428";
+  const sidebarText = data.sidebarTextColor || "#ffffff";
+  const loginBg = data.loginBackgroundColor || "#f5f7f6";
+  const loginCard = data.loginCardColor || "#ffffff";
+  const buttonBg = data.buttonColor || primary;
+  const buttonText = data.buttonTextColor || "#ffffff";
+
+  root.style.setProperty("--brand-primary", primary);
+  root.style.setProperty("--brand-primary-hover", primary);
+  root.style.setProperty("--brand-secondary", secondary);
+  root.style.setProperty("--brand-sidebar-background", sidebarBg);
+  root.style.setProperty("--brand-sidebar-text", sidebarText);
+  root.style.setProperty("--brand-login-background", loginBg);
+  root.style.setProperty("--brand-login-card", loginCard);
+  root.style.setProperty("--brand-button", buttonBg);
+  root.style.setProperty("--brand-button-text", buttonText);
+  root.style.setProperty("--border-focus", primary);
+  root.style.setProperty("--color-success", primary);
 }
 
 /**
@@ -365,6 +377,7 @@ export async function updateCompanyBranding(
       updated_at: new Date().toISOString(),
     };
 
+    if (data.companyName !== undefined) payload.company_name = data.companyName;
     if (data.primaryColor !== undefined) payload.primary_color = data.primaryColor;
     if (data.secondaryColor !== undefined) payload.secondary_color = data.secondaryColor;
     if (data.sidebarBackgroundColor !== undefined) payload.sidebar_background_color = data.sidebarBackgroundColor;
