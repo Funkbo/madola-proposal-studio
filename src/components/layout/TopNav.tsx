@@ -17,13 +17,13 @@ export interface TopNavProps {
 
 export function TopNav({ onOpenMobileMenu, userProfile }: TopNavProps) {
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 md:px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+    <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 md:px-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 shadow-sm transition-all">
       {/* Left: Mobile menu toggle & Title/Search */}
       <div className="flex items-center gap-3 flex-1 max-w-md">
         <button
           type="button"
           onClick={onOpenMobileMenu}
-          className="md:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 active:scale-95 transition-all"
           aria-label="Open mobile menu"
         >
           <Menu className="w-5 h-5" />
@@ -32,8 +32,8 @@ export function TopNav({ onOpenMobileMenu, userProfile }: TopNavProps) {
         <div className="w-full hidden sm:block">
           <Input
             placeholder="Search proposals, customers, postcodes..."
-            icon={<Search className="w-4 h-4" />}
-            className="h-9 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+            icon={<Search className="w-4 h-4 text-emerald-600" />}
+            className="h-10 bg-slate-50/80 dark:bg-slate-950/80 border-slate-200/80 dark:border-slate-800/80 rounded-xl focus:ring-emerald-500/20"
             aria-label="Search platform"
           />
         </div>
@@ -47,7 +47,7 @@ export function TopNav({ onOpenMobileMenu, userProfile }: TopNavProps) {
           onClick={() => {
             window.location.href = "/proposals/new";
           }}
-          className="hidden sm:inline-flex"
+          className="hidden sm:inline-flex shadow-md shadow-emerald-600/20 hover:shadow-emerald-600/30"
         >
           <Plus className="w-4 h-4" />
           <span>New Proposal</span>
@@ -55,25 +55,25 @@ export function TopNav({ onOpenMobileMenu, userProfile }: TopNavProps) {
 
         <button
           type="button"
-          className="p-2 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 relative"
+          className="p-2.5 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 relative transition-all active:scale-95"
           aria-label="Notifications"
         >
           <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
+          <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse-glow" />
         </button>
 
         <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1 hidden sm:block" />
 
         {/* User Profile Badge */}
         <div className="flex items-center gap-2.5 pl-1">
-          <div className="w-8 h-8 rounded-full bg-slate-800 text-emerald-400 font-semibold flex items-center justify-center text-xs border border-slate-700 uppercase">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-slate-900 text-white font-bold flex items-center justify-center text-xs shadow-md border border-emerald-500/30 uppercase tracking-wider">
             {userProfile?.fullName ? userProfile.fullName.substring(0, 2) : "ME"}
           </div>
           <div className="hidden lg:block text-left">
-            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 leading-tight">
+            <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">
               {userProfile?.fullName || "Madola Staff"}
             </p>
-            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 capitalize font-medium">
+            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 capitalize font-bold tracking-wide">
               {userProfile?.role || "Staff Member"}
             </p>
           </div>
@@ -83,7 +83,7 @@ export function TopNav({ onOpenMobileMenu, userProfile }: TopNavProps) {
             onClick={async () => {
               await logout();
             }}
-            className="p-2 ml-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-2 ml-1 text-slate-400 hover:text-rose-500 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
             title="Sign Out"
             aria-label="Sign Out"
           >

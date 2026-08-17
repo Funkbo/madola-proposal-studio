@@ -67,22 +67,25 @@ export function Sidebar() {
       <nav className="flex-1 p-4 space-y-1.5" aria-label="Sidebar main navigation">
         {NAV_ITEMS.map((item) => {
           const Icon = ICON_MAP[item.iconName];
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}`));
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+                "relative flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
                 isActive
-                  ? "bg-emerald-600/15 text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2.5"
-                  : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
+                  ? "bg-gradient-to-r from-emerald-500/20 to-emerald-500/5 text-emerald-400 font-bold shadow-md shadow-emerald-950/40 border border-emerald-500/30"
+                  : "text-slate-300 hover:bg-white/5 hover:text-white hover:translate-x-1"
               )}
             >
+              {isActive && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-emerald-500 rounded-r-full shadow-lg shadow-emerald-500/80 animate-pulse-glow" />
+              )}
               <Icon
                 className={cn(
-                  "w-5 h-5 transition-colors",
-                  isActive ? "text-emerald-400" : "text-slate-400 group-hover:text-slate-200"
+                  "w-5 h-5 transition-transform duration-200 group-hover:scale-110",
+                  isActive ? "text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "text-slate-400 group-hover:text-emerald-300"
                 )}
                 aria-hidden="true"
               />

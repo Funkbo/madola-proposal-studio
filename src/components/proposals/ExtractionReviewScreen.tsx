@@ -120,16 +120,16 @@ export function ExtractionReviewScreen({
   };
 
   return (
-    <div className="space-y-8 bg-slate-50 p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
+    <div className="space-y-8 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-lg animate-slide-up">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800/80 pb-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-2">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 text-xs font-extrabold mb-2 border border-emerald-300 dark:border-emerald-800/50 shadow-sm animate-pulse-glow">
             <Sparkles className="w-3.5 h-3.5" />
             <span>OpenSolar PDF Extraction Review</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Validate & Review Proposal Data</h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">Validate & Review Proposal Data</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
             Compare extracted OpenSolar source data on the left with editable proposal values on the right before publishing.
           </p>
         </div>
@@ -137,7 +137,7 @@ export function ExtractionReviewScreen({
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleReset}
-            className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 shadow-sm"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset</span>
@@ -150,9 +150,9 @@ export function ExtractionReviewScreen({
               setIsSaving(false);
             }}
             disabled={isSaving}
-            className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 shadow-sm"
           >
-            <Eye className="w-3.5 h-3.5" />
+            <Eye className="w-3.5 h-3.5 text-emerald-600" />
             <span>Preview in New Tab</span>
           </button>
 
@@ -163,7 +163,7 @@ export function ExtractionReviewScreen({
               setIsSaving(false);
             }}
             disabled={isSaving}
-            className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5"
+            className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700 transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 shadow-sm"
           >
             <Save className="w-3.5 h-3.5" />
             <span>Save Draft</span>
@@ -176,7 +176,7 @@ export function ExtractionReviewScreen({
               setIsSaving(false);
             }}
             disabled={isSaving}
-            className="px-6 py-2.5 text-xs font-black rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/30 transition-all flex items-center gap-2"
+            className="px-6 py-2.5 text-xs font-black rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/50 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
           >
             <Send className="w-4 h-4" />
             <span>Save & Continue to Interactive Proposal</span>
