@@ -1,11 +1,21 @@
-"use client";
+import { getCurrentUserProfile } from "@/lib/services/profile";
+import { SettingsContainer } from "@/components/settings/SettingsContainer";
 
-import { CompanyBrandingSettings } from "@/components/settings/CompanyBrandingSettings";
+export default async function SettingsPage() {
+  const { user, profile } = await getCurrentUserProfile();
 
-export default function SettingsPage() {
+  const userProfile = profile
+    ? {
+        id: profile.id,
+        fullName: profile.fullName,
+        role: profile.role,
+        email: user?.email || "",
+      }
+    : null;
+
   return (
     <div className="p-6 sm:p-8">
-      <CompanyBrandingSettings />
+      <SettingsContainer currentUserProfile={userProfile} />
     </div>
   );
 }

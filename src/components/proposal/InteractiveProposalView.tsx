@@ -304,7 +304,7 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
           <div className="flex items-center gap-3">
             <a
               href="#section-acceptance"
-              className="px-4 py-2.5 text-xs font-extrabold rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all flex items-center gap-1.5 min-h-[44px]"
+              className="px-4 py-2.5 text-xs font-extrabold rounded-xl bg-[var(--brand-button,#10b981)] text-[var(--brand-button-text,#ffffff)] hover:brightness-110 shadow-md shadow-emerald-950/20 active:scale-[0.98] transition-all flex items-center gap-1.5 min-h-[44px]"
             >
               <span>Accept Proposal</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -1392,7 +1392,7 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-4 text-sm font-bold rounded-2xl bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 text-sm font-bold rounded-2xl bg-[var(--brand-button,#10b981)] text-[var(--brand-button-text,#ffffff)] hover:brightness-110 shadow-lg shadow-emerald-950/20 transition-all flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <span>Recording Acceptance...</span>
@@ -1413,8 +1413,8 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
         {/* Header: Brand Logo + Proposal Reference */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-1.5">
-            <Zap className="w-4 h-4 text-emerald-600 fill-current" />
-            <span className="font-extrabold text-xs tracking-wider text-slate-900">MADOLA</span>
+            <Zap className="w-4 h-4 text-[var(--brand-primary,#10b981)] fill-current" />
+            <span className="font-extrabold text-xs tracking-wider text-slate-900">{branding.companyName || "MADOLA"}</span>
           </div>
           <div className="text-right">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Proposal</p>
@@ -1424,41 +1424,41 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
 
         {/* Navigation List Items */}
         <nav className="space-y-1 text-xs font-semibold text-slate-700">
-          <a href="#section-cover" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+          <a href="#section-cover" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Cover</span>
           </a>
-          <a href="#section-why-us" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+          <a href="#section-why-us" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Why Choose Us?</span>
           </a>
-          <a href="#section-intro" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+          <a href="#section-intro" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Text</span>
           </a>
-          <a href="#section-our-work" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+          <a href="#section-our-work" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Our Work</span>
           </a>
-          <a href="#section-panel-layout" className="flex flex-col px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+          <a href="#section-panel-layout" className="flex flex-col px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span className="font-extrabold text-slate-900">Panel layout</span>
             <span className="text-[10px] text-slate-400 font-normal">Proposed panel positions</span>
           </a>
-          <a href="#section-whats-included" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+          <a href="#section-whats-included" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>What's Included</span>
           </a>
-          <a href="#section-ev-charger" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+          <a href="#section-ev-charger" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Add an EV?</span>
           </a>
-          <a href="#section-options" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+          <a href="#section-options" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Extra products</span>
           </a>
-          <a href="#section-notes" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+          <a href="#section-notes" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Text</span>
           </a>
-          <a href="#section-payment" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+          <a href="#section-payment" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Payment schedule</span>
           </a>
-          <a href="#section-financials" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+          <a href="#section-financials" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Final price summary</span>
           </a>
-          <a href="#section-acceptance" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-emerald-700 transition-colors">
+          <a href="#section-acceptance" className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-100 hover:text-[var(--brand-primary,#10b981)] transition-colors">
             <span>Acceptance</span>
           </a>
         </nav>
@@ -1467,7 +1467,7 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
         <div className="pt-1">
           <button
             onClick={() => window.print()}
-            className="w-full py-2.5 px-4 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 px-4 rounded-full bg-[var(--brand-button,#10b981)] text-[var(--brand-button-text,#ffffff)] hover:brightness-110 font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5"
           >
             <span>Download PDF</span>
             <FileText className="w-3.5 h-3.5" />
