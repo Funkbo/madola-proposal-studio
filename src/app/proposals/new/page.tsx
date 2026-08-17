@@ -151,9 +151,13 @@ export default function NewProposalPage() {
         return;
       }
 
-      // 6. Only after Upload AND Download succeed, run PDF Extraction
+      // 6. Only after Upload AND Download succeed, run PDF Extraction with base64 payload
       const fileSizeMb = (file.size / (1024 * 1024)).toFixed(2);
-      setUploadStep(`Storage upload & download PASS (${fileSizeMb} MB). Extracting OpenSolar data...`);
+      setUploadStep(`Storage upload PASS (${fileSizeMb} MB). Extracting OpenSolar data...`);
+
+      // Read file arrayBuffer as Base64 string to ensure 100% reliable serverless extraction
+      const arrayBuffer = await file.arrayBuffer();
+      const fileBase64 = Buffer.from(arrayBuffer).toString("base64");
 
       const res = await processStoredOpenSolarPdfAction({
         bucket: bucketName,
@@ -161,6 +165,7 @@ export default function NewProposalPage() {
         fileName: file.name,
         fileSize: file.size,
         mimeType: file.type || "application/pdf",
+        fileBase64: fileBase64,
       });
 
       if (res.success && res.extraction) {

@@ -129,6 +129,43 @@ export function extractImagesFromPdfBuffer(pdfBuffer: Buffer): string[] {
   return uniqueImages.map((img) => img.dataUrl);
 }
 
+export function extractRawPdfTextStrings(pdfBuffer: Buffer): string {
+  try {
+    const rawStr = pdfBuffer.toString("latin1");
+    const textMatches: string[] = [];
+
+    // Extract text in PDF parentheses (e.g. (Customer Name), (5.76 kWp))
+    const parenRegex = /\(([^()\r\n]{2,150})\)/g;
+    let match: RegExpExecArray | null;
+    while ((match = parenRegex.exec(rawStr)) !== null) {
+      const cleaned = match[1].replace(/\\([()\\])/g, "$1").trim();
+      if (cleaned.length > 1 && !/^[\x00-\x1F]+$/.test(cleaned)) {
+        textMatches.push(cleaned);
+      }
+    }
+
+    // Extract text from stream blocks
+    const streamRegex = /BT[\s\S]*?ET/g;
+    while ((match = streamRegex.exec(rawStr)) !== null) {
+      const block = match[0];
+      const tjRegex = /\[(.*?)\]\s*TJ|\((.*?)\)\s*Tj/g;
+      let tjMatch: RegExpExecArray | null;
+      while ((tjMatch = tjRegex.exec(block)) !== null) {
+        const item = tjMatch[1] || tjMatch[2] || "";
+        const cleaned = item.replace(/\((.*?)\)/g, "$1").replace(/\\/g, "").trim();
+        if (cleaned.length > 1) {
+          textMatches.push(cleaned);
+        }
+      }
+    }
+
+    return textMatches.join("\n");
+  } catch (e) {
+    console.warn("Could not extract raw PDF text strings", e);
+    return "";
+  }
+}
+
 export async function parseOpenSolarPdfBuffer(pdfBuffer: Buffer): Promise<ExtractionResult> {
   let text = "";
   let extractedImages: string[] = [];
@@ -152,7 +189,11 @@ export async function parseOpenSolarPdfBuffer(pdfBuffer: Buffer): Promise<Extrac
       pdfParseModule = await import("pdf-parse");
     }
 
-    const PDFParse = pdfParseModule?.PDFParse || pdfParseModule?.default?.PDFParse || pdfParseModule?.default || pdfParseModule;
+    const PDFParse =
+      pdfParseModule?.PDFParse ||
+      (typeof pdfParseModule === "function" ? pdfParseModule : null) ||
+      (pdfParseModule?.default && typeof pdfParseModule.default === "function" ? pdfParseModule.default : null) ||
+      (pdfParseModule?.default?.PDFParse ? pdfParseModule.default.PDFParse : null);
 
     if (typeof PDFParse === "function" && PDFParse.prototype && typeof PDFParse.prototype.load === "function") {
       // pdf-parse v2 PDFParse class
@@ -178,7 +219,15 @@ export async function parseOpenSolarPdfBuffer(pdfBuffer: Buffer): Promise<Extrac
       }
     }
   } catch (err) {
-    console.error("pdf-parse buffer parse error:", err);
+    console.warn("pdf-parse module extraction notice (will fallback to raw PDF stream parser):", err);
+  }
+
+  // Fallback to raw PDF stream parser if main pdf-parse text is empty
+  if (!text || text.trim().length < 50) {
+    const rawExtractedText = extractRawPdfTextStrings(pdfBuffer);
+    if (rawExtractedText && rawExtractedText.length > text.length) {
+      text = rawExtractedText;
+    }
   }
 
   const result = extractFromText(text, extractedImages);

@@ -11,6 +11,7 @@ export interface ProcessStoredPdfParams {
   fileSize: number;
   mimeType: string;
   fallbackText?: string;
+  fileBase64?: string;
 }
 
 export async function processStoredOpenSolarPdfAction(params: ProcessStoredPdfParams): Promise<{
@@ -19,9 +20,31 @@ export async function processStoredOpenSolarPdfAction(params: ProcessStoredPdfPa
   error?: string;
 }> {
   try {
-    const { bucket, path, fallbackText } = params;
+    const { bucket, path, fallbackText, fileBase64 } = params;
 
-    // 1. Download PDF from Supabase Storage bucket
+    // 1. If client provided base64 buffer directly, parse it immediately
+    if (fileBase64) {
+      try {
+        const buffer = Buffer.from(fileBase64, "base64");
+        const extraction = await parseOpenSolarPdfBuffer(buffer);
+
+        if (extraction && extraction.normalised) {
+          extraction.normalised.sourceDocument = {
+            fileName: params.fileName,
+            storageBucket: params.bucket,
+            storagePath: params.path,
+            fileSize: params.fileSize,
+            mimeType: params.mimeType,
+          };
+        }
+
+        return { success: true, extraction };
+      } catch (base64Err) {
+        console.warn("Base64 direct parse notice:", base64Err);
+      }
+    }
+
+    // 2. Download PDF from Supabase Storage bucket
     try {
       const supabase = await getSupabaseClient();
       const { data, error } = await supabase.storage.from(bucket).download(path);
