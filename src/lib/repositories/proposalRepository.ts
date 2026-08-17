@@ -4,6 +4,45 @@ import { getSupabaseEnv } from "@/lib/supabase/config";
 
 const LOCAL_STORAGE_PROPOSALS_KEY = "madola_saved_proposals_list";
 
+export function deleteLocalProposalStorage(id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const filterFn = (p: any) =>
+      p && p.id !== id && p.reference !== id && p.publicToken !== id && p.publicSlug !== id;
+
+    const saved = localStorage.getItem(LOCAL_STORAGE_PROPOSALS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        localStorage.setItem(LOCAL_STORAGE_PROPOSALS_KEY, JSON.stringify(parsed.filter(filterFn)));
+      }
+    }
+
+    const extraSaved = localStorage.getItem("madola_saved_proposals_list");
+    if (extraSaved) {
+      const parsed = JSON.parse(extraSaved);
+      if (Array.isArray(parsed)) {
+        localStorage.setItem("madola_saved_proposals_list", JSON.stringify(parsed.filter(filterFn)));
+      }
+    }
+
+    const interactiveCache = localStorage.getItem("madola_interactive_proposals_cache");
+    if (interactiveCache) {
+      const parsed = JSON.parse(interactiveCache);
+      if (typeof parsed === "object" && parsed !== null) {
+        delete parsed[id];
+        localStorage.setItem("madola_interactive_proposals_cache", JSON.stringify(parsed));
+      }
+    }
+
+    if ((window as any).__MADOLA_PROPOSALS_CACHE__) {
+      delete (window as any).__MADOLA_PROPOSALS_CACHE__[id];
+    }
+  } catch (e) {
+    console.error("Error purging local proposal storage:", e);
+  }
+}
+
 function getLocalProposals(): Proposal[] {
   if (typeof window === "undefined") return [];
   try {
@@ -14,20 +53,7 @@ function getLocalProposals(): Proposal[] {
   } catch (e) {
     console.error("Error reading local proposals fallback", e);
   }
-  return [
-    {
-      id: "proposal-default-1",
-      reference: "MAD-2026-00001",
-      customerId: "cust-default-1",
-      customerName: "Amanda Ratucoko",
-      customerEmail: "amanda@example.co.uk",
-      templateName: "5.4 kW Turnkey Solar & Storage",
-      status: "draft",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: "usr-1",
-    },
-  ];
+  return [];
 }
 
 function saveLocalProposal(proposal: Proposal) {
@@ -472,22 +498,7 @@ export async function deleteProposal(id: string): Promise<{ success: boolean; er
     }
   }
 
-  if (typeof window !== "undefined") {
-    try {
-      const current = getLocalProposals();
-      const filtered = current.filter((p) => p.id !== id && p.reference !== id && p.publicToken !== id);
-      localStorage.setItem(LOCAL_STORAGE_PROPOSALS_KEY, JSON.stringify(filtered));
-
-      const extraSaved = localStorage.getItem("madola_saved_proposals_list");
-      if (extraSaved) {
-        const parsed = JSON.parse(extraSaved);
-        const updated = parsed.filter((p: any) => p.id !== id && p.reference !== id && p.publicToken !== id);
-        localStorage.setItem("madola_saved_proposals_list", JSON.stringify(updated));
-      }
-    } catch (e) {
-      console.error("Error removing local proposal", e);
-    }
-  }
+  deleteLocalProposalStorage(id);
 
   return { success: true, error: null };
 }

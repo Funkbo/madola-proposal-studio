@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Proposal } from "@/types/proposal";
 import { formatUKDate } from "@/lib/utils";
 import { deleteProposalAction } from "@/app/proposals/actions";
+import { deleteLocalProposalStorage } from "@/lib/repositories/proposalRepository";
 import { FileText, Plus, Search, Filter, Eye, Trash2, ExternalLink, AlertTriangle } from "lucide-react";
 
 export interface ProposalsListProps {
@@ -33,9 +34,14 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
     if (!proposalToDelete) return;
     setIsDeleting(true);
     try {
-      await deleteProposalAction(proposalToDelete.id);
+      const targetId = proposalToDelete.id;
+      deleteLocalProposalStorage(targetId);
+      if (proposalToDelete.reference) deleteLocalProposalStorage(proposalToDelete.reference);
+      if (proposalToDelete.publicToken) deleteLocalProposalStorage(proposalToDelete.publicToken);
+
+      await deleteProposalAction(targetId);
       setProposals((prev) =>
-        prev.filter((p) => p.id !== proposalToDelete.id && p.reference !== proposalToDelete.reference)
+        prev.filter((p) => p.id !== targetId && p.reference !== proposalToDelete.reference)
       );
       setProposalToDelete(null);
     } catch (err) {
