@@ -58,72 +58,28 @@ export default function NewProposalPage() {
 
     setIsUploading(true);
     setErrorMessage(null);
-    setUploadStep("Extracting OpenSolar proposal data from PDF...");
+    setUploadStep("Uploading PDF & extracting OpenSolar proposal data...");
 
     try {
-      // 1. Read file arrayBuffer & Base64 for instant PDF parsing
-      const arrayBuffer = await file.arrayBuffer();
-      const fileBase64 = Buffer.from(arrayBuffer).toString("base64");
+      // 1. Post raw binary PDF via FormData to API Route (bypassing Server Action payload limits)
+      const formData = new FormData();
+      formData.append("file", file);
 
-      // 2. Perform PDF extraction immediately via Server Action
-      const bucketName = "proposal-pdfs";
-      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.-]/g, "_");
-      const timestamp = Date.now();
-      let targetPath = `guest/opensolar/${timestamp}_${sanitizedFileName}`;
-
-      const res = await processStoredOpenSolarPdfAction({
-        bucket: bucketName,
-        path: targetPath,
-        fileName: file.name,
-        fileSize: file.size,
-        mimeType: file.type || "application/pdf",
-        fileBase64: fileBase64,
+      const response = await fetch("/api/extract-pdf", {
+        method: "POST",
+        body: formData,
       });
 
-      if (!res.success || !res.extraction) {
+      const res = await response.json();
+
+      if (!response.ok || !res.success || !res.extraction) {
         setIsUploading(false);
         setErrorMessage(`Extraction Failed: ${res.error || "Could not extract data from OpenSolar PDF."}`);
         return;
       }
 
-      // 3. Attempt Supabase Storage upload & customer creation gracefully
-      setUploadStep("PDF data extracted! Uploading to storage and resolving customer profile...");
-      try {
-        const supabase = await getSupabaseClient();
-        const { data: userData } = await supabase.auth.getUser();
-
-        if (userData?.user) {
-          let companyId = "5c813b60-7b97-47c1-9457-11f98adfb9b7";
-          try {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("company_id")
-              .eq("id", userData.user.id)
-              .single();
-            if (profile?.company_id) companyId = profile.company_id;
-          } catch (pe) {}
-
-          targetPath = `${companyId}/opensolar/${timestamp}_${sanitizedFileName}`;
-
-          const { data: uploadData, error: uploadErr } = await supabase.storage
-            .from(bucketName)
-            .upload(targetPath, file, {
-              contentType: "application/pdf",
-              upsert: false,
-            });
-
-          if (!uploadErr && uploadData?.path) {
-            targetPath = uploadData.path;
-            if (res.extraction.normalised?.sourceDocument) {
-              res.extraction.normalised.sourceDocument.storagePath = targetPath;
-            }
-          }
-        }
-      } catch (storageErr) {
-        console.warn("Storage upload notice (proposal extraction preserved):", storageErr);
-      }
-
-      // 4. Auto-create customer record if applicable
+      // 2. Auto-create customer record if applicable
+      setUploadStep("Data extracted! Synchronizing customer profile...");
       try {
         const { autoCreateCustomerFromExtraction } = await import("@/lib/repositories/customerRepository");
         await autoCreateCustomerFromExtraction(res.extraction);
