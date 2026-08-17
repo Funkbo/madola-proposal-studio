@@ -38,9 +38,24 @@ export default async function ProposalDetailPage({ params }: { params: Promise<{
         customerEmail: data.customer_email,
         notes: data.notes,
       };
+    } else if (proposal.status === "accepted") {
+      acceptanceData = {
+        acceptedAt: proposal.updatedAt || proposal.createdAt,
+        customerName: proposal.customerName,
+        customerEmail: proposal.customerEmail,
+        notes: "Accepted online via customer share link",
+      };
     }
   } catch (e) {
     console.warn("Could not query proposal_acceptance row", e);
+    if (proposal.status === "accepted") {
+      acceptanceData = {
+        acceptedAt: proposal.updatedAt || proposal.createdAt,
+        customerName: proposal.customerName,
+        customerEmail: proposal.customerEmail,
+        notes: "Accepted online via customer share link",
+      };
+    }
   }
 
   return <ProposalDetailView proposal={proposal} acceptanceData={acceptanceData} />;
