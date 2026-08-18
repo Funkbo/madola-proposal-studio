@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
+import Cropper, { Area } from "react-easy-crop";
+import "react-easy-crop/react-easy-crop.css";
 import { ExtractionResult } from "@/types/extraction";
 import Link from "next/link";
 import {
@@ -21,7 +23,19 @@ import {
   TrendingUp,
   LayoutTemplate,
   ExternalLink,
+  Crop,
+  X,
+  ZoomIn,
 } from "lucide-react";
+
+type CropAspect = "free" | "16/9" | "4/3" | "1/1";
+
+const CROP_ASPECTS: { key: CropAspect; label: string; value?: number }[] = [
+  { key: "free", label: "Free" },
+  { key: "16/9", label: "16:9", value: 16 / 9 },
+  { key: "4/3", label: "4:3", value: 4 / 3 },
+  { key: "1/1", label: "1:1", value: 1 },
+];
 
 interface ExtractionReviewScreenProps {
   initialExtraction: ExtractionResult;
@@ -40,6 +54,104 @@ export function ExtractionReviewScreen({
   const [selectedOptionIdx, setSelectedOptionIdx] = useState<number>(initialExtraction.selectedOptionIndex || 0);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("template-madola-standard");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Panel layout image cropping
+  const [isCropOpen, setIsCropOpen] = useState(false);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [cropAspect, setCropAspect] = useState<CropAspect>("free");
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [isApplyingCrop, setIsApplyingCrop] = useState(false);
+  const originalRoofLayoutRef = useRef<string | null>(null);
+
+  const cropAspectValue = CROP_ASPECTS.find((a) => a.key === cropAspect)?.value;
+
+  const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const getCroppedImageDataUrl = useCallback(
+    (imageSrc: string, pixelCrop: Area) =>
+      new Promise<string>((resolve, reject) => {
+        const image = new Image();
+        image.crossOrigin = "anonymous";
+        image.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(pixelCrop.width);
+          canvas.height = Math.round(pixelCrop.height);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            reject(new Error("Canvas not supported"));
+            return;
+          }
+          ctx.drawImage(
+            image,
+            pixelCrop.x,
+            pixelCrop.y,
+            pixelCrop.width,
+            pixelCrop.height,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error("Failed to create image blob"));
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () => reject(reader.error || new Error("Failed to read image"));
+              reader.readAsDataURL(blob);
+            },
+            "image/jpeg",
+            0.92
+          );
+        };
+        image.onerror = () => reject(new Error("Failed to load image"));
+        image.src = imageSrc;
+      }),
+    []
+  );
+
+  const openCropModal = () => {
+    originalRoofLayoutRef.current = data.roofLayoutImage || null;
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCropAspect("free");
+    setCroppedAreaPixels(null);
+    setIsCropOpen(true);
+  };
+
+  const applyCrop = async () => {
+    if (!data.roofLayoutImage || !croppedAreaPixels) return;
+    setIsApplyingCrop(true);
+    try {
+      const croppedUrl = await getCroppedImageDataUrl(data.roofLayoutImage, croppedAreaPixels);
+      setData((prev) => ({
+        ...prev,
+        roofLayoutImage: croppedUrl,
+        normalised: prev.normalised ? { ...prev.normalised, roofLayoutImage: croppedUrl } : prev.normalised,
+      }));
+      setIsCropOpen(false);
+    } catch (e) {
+      console.error("Crop failed", e);
+    } finally {
+      setIsApplyingCrop(false);
+    }
+  };
+
+  const restoreOriginalLayoutImage = () => {
+    if (!originalRoofLayoutRef.current) return;
+    const original = originalRoofLayoutRef.current;
+    setData((prev) => ({
+      ...prev,
+      roofLayoutImage: original,
+      normalised: prev.normalised ? { ...prev.normalised, roofLayoutImage: original } : prev.normalised,
+    }));
+  };
 
   const systemOptions = data.systemOptions || [];
 
@@ -303,7 +415,27 @@ export function ExtractionReviewScreen({
                 </div>
                 <div className="relative aspect-[16/9] rounded-xl overflow-hidden border-2 border-emerald-500 bg-slate-900 group shadow-sm">
                   {data.roofLayoutImage ? (
-                    <img src={data.roofLayoutImage} alt="Aerial Roof Layout" className="w-full h-full object-cover" />
+                    <>
+                      <img src={data.roofLayoutImage} alt="Aerial Roof Layout" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={openCropModal}
+                        className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-black/70 hover:bg-black/85 text-white rounded-lg border border-white/20 transition-colors"
+                      >
+                        <Crop className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Crop</span>
+                      </button>
+                      {originalRoofLayoutRef.current && originalRoofLayoutRef.current !== data.roofLayoutImage && (
+                        <button
+                          type="button"
+                          onClick={restoreOriginalLayoutImage}
+                          className="absolute bottom-2 right-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-black/70 hover:bg-black/85 text-white rounded-lg border border-white/20 transition-colors"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 text-slate-300" />
+                          <span>Restore Original</span>
+                        </button>
+                      )}
+                    </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">Default Roof Panel Layout</div>
                   )}
@@ -512,6 +644,94 @@ export function ExtractionReviewScreen({
           </div>
         </div>
       </div>
+
+      {/* Crop Modal for Panel Layout Image */}
+      {isCropOpen && data.roofLayoutImage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
+          <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-slate-50">
+              <div className="flex items-center gap-2">
+                <Crop className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm font-bold text-slate-900">Crop Panel Layout Image</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCropOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-600 transition-colors"
+                aria-label="Close crop modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="relative w-full h-[420px] rounded-xl overflow-hidden bg-slate-900">
+                <Cropper
+                  image={data.roofLayoutImage}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={cropAspectValue}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={onCropComplete}
+                  showGrid
+                  mediaProps={{ crossOrigin: "anonymous" }}
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-bold text-slate-600">Aspect:</span>
+                {CROP_ASPECTS.map((a) => (
+                  <button
+                    key={a.key}
+                    type="button"
+                    onClick={() => setCropAspect(a.key)}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${
+                      cropAspect === a.key
+                        ? "bg-emerald-600 border-emerald-600 text-white"
+                        : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <ZoomIn className="w-4 h-4 text-slate-500" />
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.01}
+                  value={zoom}
+                  onChange={(e) => setZoom(parseFloat(e.target.value))}
+                  className="flex-1 accent-emerald-600"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCropOpen(false)}
+                  className="px-4 py-2 text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={applyCrop}
+                  disabled={isApplyingCrop || !croppedAreaPixels}
+                  className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  {isApplyingCrop ? "Applying..." : "Apply Crop"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
