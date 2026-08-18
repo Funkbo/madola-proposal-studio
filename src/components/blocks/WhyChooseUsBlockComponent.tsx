@@ -115,7 +115,25 @@ export function WhyChooseUsBlockComponent({ block }: BlockComponentProps) {
       )}
 
       {/* 6. ACCREDITATION LOGOS HORIZONTAL ROW */}
-      <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+      {accreditations && accreditations.length > 0 ? (
+        <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+          {accreditations.map((acc: any, idx: number) => (
+            <div
+              key={acc.id || idx}
+              className="h-12 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center"
+              title={acc.name || acc.alt || "Accreditation"}
+            >
+              <img
+                src={acc.src}
+                alt={acc.alt || acc.name || "Accreditation"}
+                className="max-h-9 max-w-[120px] object-contain"
+                loading="lazy"
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         {/* HIES */}
         <div className="h-12 px-3 rounded-xl bg-emerald-700 text-white font-extrabold text-[10px] flex items-center justify-center text-center uppercase shadow-sm">
           HIES<br/>Accredited Member
@@ -155,6 +173,7 @@ export function WhyChooseUsBlockComponent({ block }: BlockComponentProps) {
           <div className="text-[7px] text-red-100 font-medium mt-0.5">Accredited Programme</div>
         </div>
       </div>
+      )}
 
     </div>
   );
