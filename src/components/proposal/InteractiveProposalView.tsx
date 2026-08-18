@@ -110,33 +110,35 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
           galleryImages: customGallery && customGallery.length > 0 ? customGallery : prev.galleryImages,
         }));
       }
-
-      // Automatically fetch logged-in user details from Supabase Auth session
-      const supabase = createClient();
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        if (user) {
-          const email = user.email || "";
-          const fullName =
-            user.user_metadata?.full_name ||
-            user.user_metadata?.name ||
-            (email ? email.split("@")[0].replace(".", " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) : "");
-
-          if (fullName || email) {
-            setProposal((prev) => ({
-              ...prev,
-              preparedBy: {
-                name: fullName || prev.preparedBy?.name || "Neil Parry",
-                email: email || prev.preparedBy?.email || "nparry@madolaenergy.com",
-                profileImage: user.user_metadata?.avatar_url || prev.preparedBy?.profileImage,
-              },
-            }));
-          }
-        }
-      });
     } catch (e) {
-      console.warn("Error reading template cache or user session inside InteractiveProposalView", e);
+      console.warn("Template cache sync warning", e);
     }
-  }, [rawProposal]);
+  }, []); // Run once on mount only
+
+  // Automatically fetch logged-in user details from Supabase Auth session
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        const email = user.email || "";
+        const fullName =
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          (email ? email.split("@")[0].replace(".", " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) : "");
+
+        if (fullName || email) {
+          setProposal((prev) => ({
+            ...prev,
+            preparedBy: {
+              name: fullName || prev.preparedBy?.name || "Neil Parry",
+              email: email || prev.preparedBy?.email || "nparry@madolaenergy.com",
+              profileImage: user.user_metadata?.avatar_url || prev.preparedBy?.profileImage,
+            },
+          }));
+        }
+      }
+    });
+  }, []);
 
   const activeHeroImage = isMounted ? proposal.heroImage : rawProposal.heroImage;
   const activePreparedBy = isMounted ? proposal.preparedBy : rawProposal.preparedBy;
