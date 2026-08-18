@@ -3,6 +3,7 @@ import { getProposalKpis, getProposals } from "@/lib/services/proposals";
 import { getCustomers } from "@/lib/services/customers";
 import { KpiGrid } from "@/components/dashboard/KpiGrid";
 import { RecentProposals } from "@/components/dashboard/RecentProposals";
+import { NotificationDemo } from "@/components/dashboard/NotificationDemo";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
 
       <KpiGrid kpis={kpis} />
       <RecentProposals proposals={recentProposals} />
+      <NotificationDemo />
     </div>
   );
 }

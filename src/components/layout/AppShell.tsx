@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { NotificationProvider } from "@/components/ui/NotificationDropdown";
 
 export interface AppShellProps {
   children: React.ReactNode;
@@ -37,18 +38,20 @@ export function AppShell({ children, userProfile }: AppShellProps) {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden antialiased font-sans">
-      {/* Sidebar for Desktop */}
-      <Sidebar />
+    <NotificationProvider>
+      <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden antialiased font-sans">
+        {/* Sidebar for Desktop */}
+        <Sidebar />
 
-      {/* Mobile Navigation Drawer */}
-      <MobileNav isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
+        {/* Mobile Navigation Drawer */}
+        <MobileNav isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
 
-      {/* Main Content Body */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <TopNav onOpenMobileMenu={() => setMobileNavOpen(true)} userProfile={userProfile} />
-        <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto">{children}</main>
+        {/* Main Content Body */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <TopNav onOpenMobileMenu={() => setMobileNavOpen(true)} userProfile={userProfile} />
+          <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto">{children}</main>
+        </div>
       </div>
-    </div>
+    </NotificationProvider>
   );
 }

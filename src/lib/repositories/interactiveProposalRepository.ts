@@ -2,6 +2,7 @@ import { getSupabaseClient } from "@/lib/supabase/getSupabaseClient";
 import { FullInteractiveProposalData } from "@/types/interactiveProposal";
 import { ExtractionResult } from "@/types/extraction";
 import { getSupabaseEnv } from "@/lib/supabase/config";
+import { DEFAULT_COMPANY_ID } from "@/lib/repositories/companyBrandingRepository";
 
 const LOCAL_PROPOSAL_CACHE_KEY = "madola_interactive_proposals_cache";
 
@@ -473,7 +474,7 @@ export async function saveInteractiveProposal(proposal: FullInteractiveProposalD
       const supabase = await getSupabaseClient();
 
       // 1. Resolve Auth User ID & Company ID
-      let companyId = "5c813b60-7b97-47c1-9457-11f98adfb9b7";
+      let companyId = DEFAULT_COMPANY_ID;
       let createdById: string | null = null;
       try {
         const { data: authUser } = await supabase.auth.getUser();
@@ -493,7 +494,7 @@ export async function saveInteractiveProposal(proposal: FullInteractiveProposalD
       }
 
       if (!createdById) {
-        createdById = "abbceaf7-c24b-4984-a7e1-a2ee000d3bfe"; // Demo user fallback
+        throw new Error("No authenticated user found. Cannot save proposal without a valid user.");
       }
 
       // 2. Resolve / Upsert Customer Record
@@ -546,7 +547,10 @@ export async function saveInteractiveProposal(proposal: FullInteractiveProposalD
           .eq("company_id", companyId)
           .limit(1)
           .maybeSingle();
-        customerId = fallbackCust?.id || "abbceaf7-c24b-4984-a7e1-a2ee000d3bfe";
+        if (!fallbackCust?.id) {
+          throw new Error("No customer found for company. Cannot save proposal without a valid customer.");
+        }
+        customerId = fallbackCust.id;
       }
 
       // 3. Check if Proposal row already exists
@@ -855,17 +859,19 @@ export async function acceptInteractiveProposal(
     try {
       const supabase = await getSupabaseClient();
 
-      // 1. Ensure authenticated demo session if running server-side
+      // 1. Resolve authenticated user ID
+      let createdById: string | null = null;
       try {
         const { data: authUser } = await supabase.auth.getUser();
-        if (!authUser?.user) {
-          await supabase.auth.signInWithPassword({
-            email: "demo@demo.com",
-            password: "Demo12345",
-          });
+        if (authUser?.user?.id) {
+          createdById = authUser.user.id;
         }
       } catch (authErr) {
         console.warn("Auth check notice during acceptance:", authErr);
+      }
+
+      if (!createdById) {
+        throw new Error("No authenticated user found. Cannot accept proposal without a valid user.");
       }
 
       // 2. Find Proposal by UUID or Token or Reference
@@ -910,17 +916,21 @@ export async function acceptInteractiveProposal(
           });
       } else {
         // Fallback: If proposal row does not exist yet in DB, create it with customer and record acceptance
-        let customerId = "abbceaf7-c24b-4984-a7e1-a2ee000d3bfe";
+        let customerId: string | null = null;
         const { data: custData } = await supabase.from("customers").select("id").limit(1).maybeSingle();
         if (custData?.id) customerId = custData.id;
+        
+        if (!customerId) {
+          throw new Error("No customer found for company. Cannot create proposal without a valid customer.");
+        }
 
         const { data: newProp } = await supabase
           .from("proposals")
           .insert({
             reference: tokenOrSlug.startsWith("pub_tok_") ? tokenOrSlug.substring(8, 20).toUpperCase() : tokenOrSlug,
-            company_id: "5c813b60-7b97-47c1-9457-11f98adfb9b7",
+            company_id: DEFAULT_COMPANY_ID,
             customer_id: customerId,
-            created_by: "abbceaf7-c24b-4984-a7e1-a2ee000d3bfe",
+            created_by: createdById,
             status: "accepted",
             public_token: tokenOrSlug,
             published_at: new Date().toISOString(),

@@ -1,5 +1,6 @@
 import {
   getProposals as repoGetProposals,
+  getProposalsLegacy as repoGetProposalsLegacy,
   getProposalById as repoGetProposalById,
   createProposal as repoCreateProposal,
   getProposalKpis as repoGetProposalKpis,
@@ -11,7 +12,12 @@ export async function getProposalKpis(): Promise<ProposalKpis> {
 }
 
 export async function getProposals(limit?: number): Promise<Proposal[]> {
-  return repoGetProposals(limit);
+  return repoGetProposalsLegacy(limit);
+}
+
+export async function getProposalsPaginated(limit?: number, offset?: number): Promise<{ data: Proposal[]; total: number; hasMore: boolean }> {
+  const { getProposals } = await import("@/lib/repositories/proposalRepository");
+  return getProposals({ limit, offset });
 }
 
 export async function getProposalById(id: string): Promise<Proposal | null> {

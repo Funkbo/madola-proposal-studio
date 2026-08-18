@@ -3,8 +3,9 @@
 import React from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Search, Plus, Bell, Menu, LogOut } from "lucide-react";
+import { Search, Plus, Menu, LogOut } from "lucide-react";
 import { logout } from "@/app/auth/actions";
+import { NotificationBell } from "@/components/ui/NotificationDropdown";
 
 export interface TopNavProps {
   onOpenMobileMenu: () => void;
@@ -53,17 +54,7 @@ export function TopNav({ onOpenMobileMenu, userProfile }: TopNavProps) {
           <span>New Proposal</span>
         </Button>
 
-        <button
-          type="button"
-          className="p-2.5 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none relative transition-all active:scale-95"
-          aria-label="Notifications"
-        >
-          <Bell className="w-5 h-5" />
-          <span
-            className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse-glow"
-            style={{ backgroundColor: "var(--brand-primary, #10b981)" }}
-          />
-        </button>
+        <NotificationBell />
 
         <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1 hidden sm:block" />
 

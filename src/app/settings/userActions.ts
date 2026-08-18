@@ -20,8 +20,12 @@ export interface ManagedUser {
  * or falls back to server client with active session cookies.
  */
 async function getAdminClient() {
-  const { url, key } = getSupabaseEnv();
+  const { url, key, isConfigured } = getSupabaseEnv();
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!isConfigured) {
+    throw new Error("Supabase is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY environment variables.");
+  }
 
   if (serviceKey && serviceKey !== "placeholder-service-key") {
     return {

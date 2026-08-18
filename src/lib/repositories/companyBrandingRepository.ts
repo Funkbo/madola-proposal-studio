@@ -93,14 +93,17 @@ export function resolveStoragePublicUrl(logoPath: string | null): string {
 
   if (logoPath.startsWith("/")) {
     if (logoPath.startsWith("/storage/v1/object/public/")) {
-      const { url } = getSupabaseEnv();
-      return `${url.replace(/\/$/, "")}${logoPath}`;
+      const { url, isConfigured } = getSupabaseEnv();
+      if (isConfigured) {
+        return `${url.replace(/\/$/, "")}${logoPath}`;
+      }
+      return PUBLIC_SUPABASE_LOGO_URL;
     }
     return logoPath;
   }
 
   const { url, isConfigured } = getSupabaseEnv();
-  if (isConfigured && url) {
+  if (isConfigured) {
     return `${url.replace(/\/$/, "")}/storage/v1/object/public/${BUCKET_NAME}/${logoPath}`;
   }
 

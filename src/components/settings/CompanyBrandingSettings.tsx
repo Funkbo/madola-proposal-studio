@@ -85,31 +85,25 @@ export function CompanyBrandingSettings() {
   }, []);
 
   const handleChange = (field: keyof CompanyBrandingData, value: string) => {
-    setFormData((prev) => {
-      const updated = { ...prev, [field]: value };
-      applyThemeCssVariables(updated);
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("madola_theme_preview", { detail: updated }));
-      }
-      return updated;
-    });
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleApplyPreset = (preset: typeof COLOR_PRESETS[0]) => {
-    setFormData((prev) => {
-      const updated = {
-        ...prev,
-        primaryColor: preset.primary,
-        buttonColor: preset.button,
-        sidebarBackgroundColor: preset.sidebar,
-      };
-      applyThemeCssVariables(updated);
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("madola_theme_preview", { detail: updated }));
-      }
-      return updated;
-    });
+    setFormData((prev) => ({
+      ...prev,
+      primaryColor: preset.primary,
+      buttonColor: preset.button,
+      sidebarBackgroundColor: preset.sidebar,
+    }));
   };
+
+  // Dispatch theme preview event after state updates (deferred to avoid render-phase setState)
+  useEffect(() => {
+    applyThemeCssVariables(formData);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("madola_theme_preview", { detail: formData }));
+    }
+  }, [formData]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

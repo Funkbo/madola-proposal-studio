@@ -146,7 +146,7 @@ export function TemplateEditorModal({
         name,
         description,
         active: true,
-        createdBy: "abbceaf7-c24b-4984-a7e1-a2ee000d3bfe",
+        createdBy: "system",
         createdAt: template?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };

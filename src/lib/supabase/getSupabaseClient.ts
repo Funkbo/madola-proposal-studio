@@ -1,4 +1,5 @@
 import { getSupabaseEnv } from "./config";
+import type { CookieOptions } from "@supabase/ssr";
 
 /**
  * Returns the appropriate Supabase client depending on the execution environment:
@@ -10,7 +11,7 @@ export async function getSupabaseClient() {
 
   if (typeof window === "undefined") {
     const { createServerClient } = await import("@supabase/ssr");
-    let cookieStore: any = null;
+    let cookieStore: { getAll: () => Array<{ name: string; value: string }>; set: (name: string, value: string, options?: CookieOptions) => void } | null = null;
     try {
       const { cookies } = await import("next/headers");
       cookieStore = await cookies();
@@ -23,7 +24,7 @@ export async function getSupabaseClient() {
         getAll() {
           return cookieStore ? cookieStore.getAll() : [];
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: CookieOptions }>) {
           if (!cookieStore) return;
           try {
             cookiesToSet.forEach(({ name, value, options }) =>

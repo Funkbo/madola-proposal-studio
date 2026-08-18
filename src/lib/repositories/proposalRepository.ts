@@ -130,13 +130,31 @@ export async function getProposalKpis(): Promise<ProposalKpis> {
   };
 }
 
-export async function getProposals(limit?: number): Promise<Proposal[]> {
+export interface PaginationParams {
+  limit?: number;
+  offset?: number;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  hasMore: boolean;
+}
+
+export async function getProposals(params: PaginationParams = {}): Promise<PaginatedResult<Proposal>> {
+  const { limit = 20, offset = 0 } = params;
   const { isConfigured } = getSupabaseEnv();
 
   if (isConfigured) {
     try {
       const supabase = await getSupabaseClient();
-      let query = supabase
+      
+      // Get total count
+      const { count: totalCount } = await supabase
+        .from("proposals")
+        .select("id", { count: "exact", head: true });
+
+      const { data, error } = await supabase
         .from("proposals")
         .select(`
           id,
@@ -160,13 +178,85 @@ export async function getProposals(limit?: number): Promise<Proposal[]> {
             name
           )
         `)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1);
 
-      if (limit) {
-        query = query.limit(limit);
+      if (!error && data) {
+        const proposals = data.map((row: any) => ({
+          id: row.id,
+          reference: row.reference,
+          customerId: row.customer_id,
+          customerName: row.customers ? `${row.customers.first_name} ${row.customers.last_name}` : "Unknown Customer",
+          customerEmail: row.customers?.email || "",
+          createdBy: row.created_by,
+          status: row.status as Proposal["status"],
+          templateId: row.template_id,
+          templateName: row.proposal_templates?.name || null,
+          expiresAt: row.expires_at,
+          publishedAt: row.published_at,
+          publicToken: row.public_token,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        }));
+        
+        return {
+          data: proposals,
+          total: totalCount || 0,
+          hasMore: offset + proposals.length < (totalCount || 0),
+        };
       }
+    } catch (e) {
+      console.warn("Supabase getProposals failed; using local fallback", e);
+    }
+  }
 
-      const { data, error } = await query;
+  const local = getLocalProposals();
+  const paginated = local.slice(offset, offset + limit);
+  return {
+    data: paginated,
+    total: local.length,
+    hasMore: offset + paginated.length < local.length,
+  };
+}
+
+// Backward compatibility
+export async function getProposalsLegacy(limit?: number): Promise<Proposal[]> {
+  const result = await getProposals({ limit });
+  return result.data;
+}
+
+export async function getProposalsByCustomerId(customerId: string): Promise<Proposal[]> {
+  const { isConfigured } = getSupabaseEnv();
+
+  if (isConfigured) {
+    try {
+      const supabase = await getSupabaseClient();
+      const { data, error } = await supabase
+        .from("proposals")
+        .select(`
+          id,
+          reference,
+          status,
+          customer_id,
+          company_id,
+          template_id,
+          created_by,
+          expires_at,
+          published_at,
+          public_token,
+          created_at,
+          updated_at,
+          customers (
+            first_name,
+            last_name,
+            email
+          ),
+          proposal_templates (
+            name
+          )
+        `)
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false });
 
       if (!error && data) {
         return data.map((row: any) => ({
@@ -187,17 +277,12 @@ export async function getProposals(limit?: number): Promise<Proposal[]> {
         }));
       }
     } catch (e) {
-      console.warn("Supabase getProposals failed; using local fallback", e);
+      console.warn("Supabase getProposalsByCustomerId failed; using local fallback", e);
     }
   }
 
   const local = getLocalProposals();
-  return limit ? local.slice(0, limit) : local;
-}
-
-export async function getProposalsByCustomerId(customerId: string): Promise<Proposal[]> {
-  const proposals = await getProposals();
-  return proposals.filter((p) => p.customerId === customerId);
+  return local.filter((p) => p.customerId === customerId);
 }
 
 export async function getProposalById(id: string): Promise<Proposal | null> {
@@ -478,10 +563,7 @@ export async function acceptPublicProposal(
       try {
         const { data: authUser } = await supabase.auth.getUser();
         if (!authUser?.user) {
-          await supabase.auth.signInWithPassword({
-            email: "demo@demo.com",
-            password: "Demo12345",
-          });
+          console.warn("No authenticated user for proposal acceptance");
         }
       } catch (authErr) {
         console.warn("Auth check notice in acceptPublicProposal:", authErr);

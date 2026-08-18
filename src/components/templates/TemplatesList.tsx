@@ -64,7 +64,7 @@ export function TemplatesList({ initialTemplates }: TemplatesListProps) {
     name: "Madola Master Base Proposal Template",
     description: "Primary master proposal structure. All uploaded OpenSolar PDFs automatically populate this template.",
     active: true,
-    createdBy: "abbceaf7-c24b-4984-a7e1-a2ee000d3bfe",
+    createdBy: "system",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

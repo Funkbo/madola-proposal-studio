@@ -36,7 +36,7 @@ export function getFallbackTemplates(): ProposalTemplate[] {
       name: "Madola Standard Proposal Template",
       description: "Default high-conversion UK residential solar & battery specification template.",
       active: true,
-      createdBy: "abbceaf7-c24b-4984-a7e1-a2ee000d3bfe",
+      createdBy: "system",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -45,7 +45,7 @@ export function getFallbackTemplates(): ProposalTemplate[] {
       name: "Madola Premium Tesla Powerwall Template",
       description: "Luxury specification layout tailored for Tesla Powerwall 3.0 systems.",
       active: true,
-      createdBy: "abbceaf7-c24b-4984-a7e1-a2ee000d3bfe",
+      createdBy: "system",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -54,7 +54,7 @@ export function getFallbackTemplates(): ProposalTemplate[] {
       name: "Madola Duracell Energy Storage Template",
       description: "Standard residential specification highlighting Duracell Dura16 modular storage.",
       active: true,
-      createdBy: "abbceaf7-c24b-4984-a7e1-a2ee000d3bfe",
+      createdBy: "system",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -94,8 +94,23 @@ export async function saveTemplate(
   description: string,
   blocks: ProposalBlock[]
 ): Promise<ProposalTemplate> {
-  const defaultUser = "abbceaf7-c24b-4984-a7e1-a2ee000d3bfe";
   const now = new Date().toISOString();
+
+  // Resolve authenticated user ID
+  let createdById: string | null = null;
+  try {
+    const supabase = await createClient();
+    const { data: authUser } = await supabase.auth.getUser();
+    if (authUser?.user?.id) {
+      createdById = authUser.user.id;
+    }
+  } catch (e) {
+    console.warn("Could not resolve user ID for template save", e);
+  }
+
+  if (!createdById) {
+    throw new Error("No authenticated user found. Cannot save template without a valid user.");
+  }
 
   try {
     const supabase = await createClient();
@@ -120,7 +135,7 @@ export async function saveTemplate(
         name,
         description,
         active: true,
-        created_by: defaultUser,
+        created_by: createdById,
         created_at: now,
         updated_at: now,
       });
@@ -146,7 +161,7 @@ export async function saveTemplate(
     name,
     description,
     active: true,
-    createdBy: defaultUser,
+    createdBy: createdById,
     createdAt: now,
     updatedAt: now,
   };
