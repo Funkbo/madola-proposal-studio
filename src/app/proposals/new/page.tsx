@@ -39,6 +39,7 @@ export default function NewProposalPage() {
 
   // Extracted result state
   const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
 
   // Public token assigned when the proposal record is auto-created on upload.
   // Reused by save/publish/preview so we never create duplicate proposal records.
@@ -66,6 +67,7 @@ export default function NewProposalPage() {
 
     setIsUploading(true);
     setErrorMessage(null);
+    setPdfFile(file);
     setUploadStep("Reading PDF in browser...");
 
     try {
@@ -246,6 +248,7 @@ export default function NewProposalPage() {
           onSaveDraft={handleSaveDraft}
           onPublish={handlePublish}
           onPreview={handlePreview}
+          pdfFile={pdfFile}
         />
       </div>
     );

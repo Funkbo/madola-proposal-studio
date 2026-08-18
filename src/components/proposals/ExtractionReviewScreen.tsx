@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useRef, useState } from "react";
 import Cropper, { Area } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import { ExtractionResult } from "@/types/extraction";
+import { PdfPageSelector } from "./PdfPageSelector";
 import Link from "next/link";
 import {
   CheckCircle2,
@@ -26,6 +27,7 @@ import {
   Crop,
   X,
   ZoomIn,
+  MousePointer,
 } from "lucide-react";
 
 type CropAspect = "free" | "16/9" | "4/3" | "1/1";
@@ -42,6 +44,7 @@ interface ExtractionReviewScreenProps {
   onSaveDraft: (updatedData: ExtractionResult, templateId?: string) => Promise<void>;
   onPublish: (updatedData: ExtractionResult, templateId?: string) => Promise<void>;
   onPreview: (updatedData: ExtractionResult, templateId?: string) => void;
+  pdfFile?: File | null;
 }
 
 export function ExtractionReviewScreen({
@@ -49,6 +52,7 @@ export function ExtractionReviewScreen({
   onSaveDraft,
   onPublish,
   onPreview,
+  pdfFile,
 }: ExtractionReviewScreenProps) {
   const [data, setData] = useState<ExtractionResult>(initialExtraction);
   const [selectedOptionIdx, setSelectedOptionIdx] = useState<number>(initialExtraction.selectedOptionIndex || 0);
@@ -57,6 +61,7 @@ export function ExtractionReviewScreen({
 
   // Panel layout image cropping
   const [isCropOpen, setIsCropOpen] = useState(false);
+  const [isPdfSelectorOpen, setIsPdfSelectorOpen] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [cropAspect, setCropAspect] = useState<CropAspect>("free");
@@ -152,6 +157,18 @@ export function ExtractionReviewScreen({
       normalised: prev.normalised ? { ...prev.normalised, roofLayoutImage: original } : prev.normalised,
     }));
   };
+
+  const applyPdfSelection = useCallback(
+    (dataUrl: string) => {
+      setData((prev) => ({
+        ...prev,
+        roofLayoutImage: dataUrl,
+        normalised: prev.normalised ? { ...prev.normalised, roofLayoutImage: dataUrl } : prev.normalised,
+      }));
+      setIsPdfSelectorOpen(false);
+    },
+    []
+  );
 
   const systemOptions = data.systemOptions || [];
 
@@ -417,14 +434,26 @@ export function ExtractionReviewScreen({
                   {data.roofLayoutImage ? (
                     <>
                       <img src={data.roofLayoutImage} alt="Aerial Roof Layout" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={openCropModal}
-                        className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-black/70 hover:bg-black/85 text-white rounded-lg border border-white/20 transition-colors"
-                      >
-                        <Crop className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Crop</span>
-                      </button>
+                      <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                        {pdfFile && (
+                          <button
+                            type="button"
+                            onClick={() => setIsPdfSelectorOpen(true)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-black/70 hover:bg-black/85 text-white rounded-lg border border-white/20 transition-colors"
+                          >
+                            <MousePointer className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Select from PDF</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={openCropModal}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-black/70 hover:bg-black/85 text-white rounded-lg border border-white/20 transition-colors"
+                        >
+                          <Crop className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Crop</span>
+                        </button>
+                      </div>
                       {originalRoofLayoutRef.current && originalRoofLayoutRef.current !== data.roofLayoutImage && (
                         <button
                           type="button"
@@ -645,6 +674,11 @@ export function ExtractionReviewScreen({
         </div>
       </div>
 
+      {/* PDF Page Selector Modal for Panel Layout Image */}
+      {isPdfSelectorOpen && pdfFile && (
+        <PdfPageSelector pdfFile={pdfFile} onSelect={applyPdfSelection} onClose={() => setIsPdfSelectorOpen(false)} />
+      )}
+
       {/* Crop Modal for Panel Layout Image */}
       {isCropOpen && data.roofLayoutImage && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
@@ -735,3 +769,4 @@ export function ExtractionReviewScreen({
     </div>
   );
 }
+
