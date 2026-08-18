@@ -1,16 +1,33 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { useNotifications } from "@/components/ui/NotificationDropdown";
-import { Bell, CheckCircle, UserPlus, FileText, ExternalLink, RotateCcw } from "lucide-react";
+import { Bell, CheckCircle, UserPlus, FileText, ExternalLink } from "lucide-react";
+
+const SEEDED_FLAG_KEY = "madola_notifications_seeded";
 
 export function NotificationDemo() {
   const { addNotification, notifications, unreadCount } = useNotifications();
+  const seededRef = useRef(false);
+  const [mounted, setMounted] = React.useState(false);
 
-  // Add demo notifications on first load
   useEffect(() => {
-    if (notifications.length === 0) {
+    setMounted(true);
+  }, []);
+
+  // Seed demo notifications ONLY once ever (guarded by a flag), so a
+  // "Clear all" action stays cleared and demos never re-appear.
+  useEffect(() => {
+    if (seededRef.current) return;
+    seededRef.current = true;
+
+    let alreadySeeded = false;
+    try {
+      alreadySeeded = localStorage.getItem(SEEDED_FLAG_KEY) === "1";
+    } catch {}
+
+    if (!alreadySeeded && notifications.length === 0) {
       const demoNotifications = [
         {
           type: "proposal_accepted" as const,
@@ -42,10 +59,12 @@ export function NotificationDemo() {
         },
       ];
 
-      // Add them with slight delays for animation effect
       demoNotifications.forEach((notif, index) => {
         setTimeout(() => addNotification(notif), index * 300);
       });
+      try {
+        localStorage.setItem(SEEDED_FLAG_KEY, "1");
+      } catch {}
     }
   }, [notifications.length, addNotification]);
 
@@ -86,7 +105,7 @@ export function NotificationDemo() {
         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Notification Demo</h3>
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            Unread: {unreadCount}
+            Unread: {mounted ? unreadCount : 0}
           </span>
           <Button variant="ghost" size="sm" onClick={() => addTestNotification("proposal_accepted")}>
             <CheckCircle className="w-4 h-4 mr-1" /> Accept

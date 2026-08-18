@@ -3,6 +3,7 @@
 import { parseOpenSolarPdfBuffer, extractFromText } from "@/lib/services/pdfExtractor";
 import { getSupabaseClient } from "@/lib/supabase/getSupabaseClient";
 import { ExtractionResult } from "@/types/extraction";
+import { FieldPatternConfig } from "@/lib/fieldPatterns";
 
 export interface ProcessStoredPdfParams {
   bucket: string;
@@ -12,6 +13,7 @@ export interface ProcessStoredPdfParams {
   mimeType: string;
   fallbackText?: string;
   fileBase64?: string;
+  fieldPatterns?: FieldPatternConfig[];
 }
 
 export async function processStoredOpenSolarPdfAction(params: ProcessStoredPdfParams): Promise<{
@@ -20,13 +22,13 @@ export async function processStoredOpenSolarPdfAction(params: ProcessStoredPdfPa
   error?: string;
 }> {
   try {
-    const { bucket, path, fallbackText, fileBase64 } = params;
+    const { bucket, path, fallbackText, fileBase64, fieldPatterns } = params;
 
     // 1. If client provided base64 buffer directly, parse it immediately
     if (fileBase64) {
       try {
         const buffer = Buffer.from(fileBase64, "base64");
-        const extraction = await parseOpenSolarPdfBuffer(buffer);
+        const extraction = await parseOpenSolarPdfBuffer(buffer, fieldPatterns);
 
         if (extraction && extraction.normalised) {
           extraction.normalised.sourceDocument = {
@@ -52,7 +54,7 @@ export async function processStoredOpenSolarPdfAction(params: ProcessStoredPdfPa
       if (!error && data) {
         const arrayBuffer = await data.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        const extraction = await parseOpenSolarPdfBuffer(buffer);
+        const extraction = await parseOpenSolarPdfBuffer(buffer, fieldPatterns);
 
         // Attach source document metadata safely
         if (extraction && extraction.normalised) {
@@ -73,7 +75,7 @@ export async function processStoredOpenSolarPdfAction(params: ProcessStoredPdfPa
 
     // 2. If fallback text is available
     if (fallbackText) {
-      const extraction = extractFromText(fallbackText);
+      const extraction = extractFromText(fallbackText, [], fieldPatterns);
       if (extraction && extraction.normalised) {
         extraction.normalised.sourceDocument = {
           fileName: params.fileName,

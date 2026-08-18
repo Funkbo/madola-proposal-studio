@@ -8,14 +8,16 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Customer } from "@/types/customer";
 import { deleteCustomer, updateCustomer } from "@/lib/repositories/customerRepository";
+import { Badge } from "@/components/ui/Badge";
 import { Users, Plus, Mail, Phone, MapPin, Search, Filter, Trash2, Edit, Save, X, AlertTriangle } from "lucide-react";
 
 export interface CustomersListProps {
   initialCustomers: Customer[];
   initialSearch?: string;
+  initialStatuses?: Record<string, string>;
 }
 
-export function CustomersList({ initialCustomers, initialSearch = "" }: CustomersListProps) {
+export function CustomersList({ initialCustomers, initialSearch = "", initialStatuses = {} }: CustomersListProps) {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [searchTerm, setSearchTerm] = useState(initialSearch);
 
@@ -123,6 +125,7 @@ export function CustomersList({ initialCustomers, initialSearch = "" }: Customer
                   <TableHead>Customer Name</TableHead>
                   <TableHead>Contact Information</TableHead>
                   <TableHead>Location</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -154,6 +157,13 @@ export function CustomersList({ initialCustomers, initialSearch = "" }: Customer
                       </div>
                       <div className="text-xs text-slate-500">{cust.addressLine1}, {cust.city}</div>
                     </TableCell>
+                    <TableCell>
+                      {initialStatuses[cust.id] === "no_proposal" ? (
+                        <Badge status="Draft" className="opacity-60">No Proposal</Badge>
+                      ) : (
+                        <Badge status={initialStatuses[cust.id] as any} />
+                      )}
+                    </TableCell>
                     <TableCell className="text-right flex items-center justify-end gap-2">
                       <button
                         onClick={() => setEditingCustomer({ ...cust })}
@@ -162,13 +172,6 @@ export function CustomersList({ initialCustomers, initialSearch = "" }: Customer
                       >
                         <Edit className="w-4 h-4" />
                       </button>
-
-                      <Link href={`/proposals/new?customerId=${cust.id}`}>
-                        <Button variant="outline" size="sm">
-                          <Plus className="w-3.5 h-3.5 mr-1" />
-                          Proposal
-                        </Button>
-                      </Link>
 
                       <button
                         onClick={() => setCustomerToDelete(cust)}
@@ -198,9 +201,16 @@ export function CustomersList({ initialCustomers, initialSearch = "" }: Customer
                   >
                     {cust.firstName} {cust.lastName}
                   </Link>
-                  <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                    {cust.postcode}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {initialStatuses[cust.id] === "no_proposal" ? (
+                      <Badge status="Draft" className="opacity-60">No Proposal</Badge>
+                    ) : (
+                      <Badge status={initialStatuses[cust.id] as any} />
+                    )}
+                    <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      {cust.postcode}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
@@ -228,13 +238,6 @@ export function CustomersList({ initialCustomers, initialSearch = "" }: Customer
                   >
                     <Edit className="w-4 h-4" />
                   </button>
-
-                  <Link href={`/proposals/new?customerId=${cust.id}`} className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full min-h-[44px]">
-                      <Plus className="w-3.5 h-3.5 mr-1" />
-                      Proposal
-                    </Button>
-                  </Link>
 
                   <button
                     onClick={() => setCustomerToDelete(cust)}

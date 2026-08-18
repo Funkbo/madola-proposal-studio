@@ -7,6 +7,15 @@ import { WhyChooseUsBlockComponent } from "./WhyChooseUsBlockComponent";
 import { TextBlockComponent } from "./TextBlockComponent";
 import { OurWorkBlockComponent } from "./OurWorkBlockComponent";
 import { PanelLayoutBlockComponent } from "./PanelLayoutBlockComponent";
+import { ProductHighlightsBlockComponent } from "./ProductHighlightsBlockComponent";
+import { TechnicalDetailsBlockComponent } from "./TechnicalDetailsBlockComponent";
+import { PerformanceEstimatesBlockComponent } from "./PerformanceEstimatesBlockComponent";
+import { EnergyUsageBlockComponent } from "./EnergyUsageBlockComponent";
+import { SelfConsumptionBlockComponent } from "./SelfConsumptionBlockComponent";
+import { BeforeAfterSolarBlockComponent } from "./BeforeAfterSolarBlockComponent";
+import { PricingBlockComponent } from "./PricingBlockComponent";
+import { SavingsBlockComponent } from "./SavingsBlockComponent";
+import { ReturnOnInvestmentBlockComponent } from "./ReturnOnInvestmentBlockComponent";
 import { WhatsIncludedBlockComponent } from "./WhatsIncludedBlockComponent";
 import { EvChargerBlockComponent } from "./EvChargerBlockComponent";
 import { ExtraProductsBlockComponent } from "./ExtraProductsBlockComponent";
@@ -21,7 +30,7 @@ export interface BlockRendererProps {
   isAdmin?: boolean;
   onToggleEvCharger?: (included: boolean) => void;
   onToggleExtraProduct?: (productId: string, included: boolean) => void;
-  onAcceptProposal?: () => void;
+  onAcceptProposal?: (signerName?: string, signerEmail?: string, notes?: string) => void;
   onRequestCall?: () => void;
 }
 
@@ -47,6 +56,24 @@ export function BlockRenderer({
       return <OurWorkBlockComponent block={block} />;
     case "panel_layout":
       return <PanelLayoutBlockComponent block={block} proposal={proposal} isAdmin={isAdmin} />;
+    case "product_highlights":
+      return <ProductHighlightsBlockComponent block={block} proposal={proposal} />;
+    case "technical_details":
+      return <TechnicalDetailsBlockComponent block={block} proposal={proposal} />;
+    case "performance_estimates":
+      return <PerformanceEstimatesBlockComponent block={block} proposal={proposal} />;
+    case "energy_usage":
+      return <EnergyUsageBlockComponent block={block} proposal={proposal} />;
+    case "self_consumption":
+      return <SelfConsumptionBlockComponent block={block} proposal={proposal} />;
+    case "before_after_solar":
+      return <BeforeAfterSolarBlockComponent block={block} proposal={proposal} />;
+    case "pricing":
+      return <PricingBlockComponent block={block} proposal={proposal} />;
+    case "savings":
+      return <SavingsBlockComponent block={block} proposal={proposal} />;
+    case "return_on_investment":
+      return <ReturnOnInvestmentBlockComponent block={block} proposal={proposal} />;
     case "whats_included":
       return <WhatsIncludedBlockComponent block={block} proposal={proposal} />;
     case "ev_charger":

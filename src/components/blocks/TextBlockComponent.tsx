@@ -51,6 +51,7 @@ export function TextBlockComponent({ block }: TextBlockComponentProps) {
     bulletPoints,
     isTrustpilot = true,
     pillBadge = "Text",
+    videoUrl,
   } = block.data || {};
 
   const isTrustpilotWidget =
@@ -95,6 +96,13 @@ export function TextBlockComponent({ block }: TextBlockComponentProps) {
           {heading}
         </h2>
       </div>
+
+      {/* 2b. EMBEDDED VIDEO */}
+      {videoUrl && (
+        <div className="relative rounded-2xl overflow-hidden aspect-video border border-slate-200 dark:border-slate-800 shadow-md bg-slate-100 dark:bg-slate-800">
+          <video src={videoUrl} controls className="w-full h-full object-cover" />
+        </div>
+      )}
 
       {/* 3. TRUSTPILOT REVIEW WIDGET */}
       {isTrustpilotWidget ? (

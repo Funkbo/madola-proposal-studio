@@ -3,9 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { BlockProposal } from "@/types/block-proposal";
 import { createDefaultProposal, calculateProposalTotals } from "@/lib/block-defaults";
+import { getMasterTemplateBlocks } from "@/lib/services/templateCache";
+import { resolveBlockData, resolveTemplateVariables } from "@/lib/template-variables";
 import { useCompanyBranding } from "@/lib/branding";
 import { BlockRenderer } from "@/components/blocks/BlockRenderer";
 import { getPublicProposalData, acceptPublicProposal } from "@/lib/repositories/proposalRepository";
+import { notifyProposalAccepted } from "@/components/ui/NotificationDropdown";
 import {
   Zap,
   Printer,
@@ -74,7 +77,13 @@ export function CustomerBlockProposalView({
           });
 
           // Hydrate client state
-          if (res.proposal.blocks && res.proposal.blocks.length > 0) {
+          const templateBlocks = getMasterTemplateBlocks();
+          const proposalBlocks =
+            res.proposal.blocks && res.proposal.blocks.length > 0
+              ? res.proposal.blocks
+              : templateBlocks;
+
+          if (proposalBlocks && proposalBlocks.length > 0) {
             setCurrentProposal((prev) => ({
               ...prev,
               reference: res.proposal.reference || prev.reference,
@@ -84,7 +93,7 @@ export function CustomerBlockProposalView({
                 name: res.proposal.customer?.name || prev.customer.name,
                 email: res.proposal.customer?.email || prev.customer.email,
               },
-              blocks: res.proposal.blocks,
+              blocks: proposalBlocks,
               paymentSchedule: res.proposal.paymentSchedule || prev.paymentSchedule,
             }));
           }
@@ -137,7 +146,13 @@ export function CustomerBlockProposalView({
     return () => observer.disconnect();
   }, [currentProposal.blocks]);
 
-  const enabledBlocks = currentProposal.blocks.filter((b) => b.enabled);
+  const enabledBlocks = currentProposal.blocks
+    .filter((b) => b.enabled)
+    .map((b) => ({
+      ...b,
+      title: resolveTemplateVariables(b.title, currentProposal),
+      data: resolveBlockData(b.data, currentProposal),
+    }));
   const totals = calculateProposalTotals(currentProposal);
 
   const handlePrint = () => {
@@ -160,6 +175,11 @@ export function CustomerBlockProposalView({
       setAcceptanceSuccess(true);
       setAcceptanceMsg("Thank you! Proposal accepted successfully. Our engineering team will contact you shortly.");
       setCurrentProposal((prev) => ({ ...prev, status: "accepted" }));
+      notifyProposalAccepted(
+        currentProposal.reference,
+        currentProposal.customer?.name || signerName || "Customer",
+        `/p/${token}`
+      );
     } else {
       setAcceptanceMsg(res.error || "Failed to submit acceptance.");
     }
@@ -299,6 +319,7 @@ export function CustomerBlockProposalView({
                   block={block}
                   proposal={currentProposal}
                   isAdmin={false}
+                  onAcceptProposal={handleAcceptOnline}
                 />
               </div>
             ))}

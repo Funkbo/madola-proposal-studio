@@ -50,6 +50,7 @@ export function OurWorkBlockComponent({ block }: OurWorkBlockComponentProps) {
     description = "Madola Energy has installed over 10,000 solar systems since 2013 — more than 100,000 panels across homes, commercial sites and utility-scale projects nationwide.",
     pillBadge = "Our Work",
     images,
+    videoUrl,
   } = block.data || {};
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -122,6 +123,13 @@ export function OurWorkBlockComponent({ block }: OurWorkBlockComponentProps) {
           {description}
         </p>
       </div>
+
+      {/* 2b. EMBEDDED VIDEO */}
+      {videoUrl && (
+        <div className="relative rounded-2xl overflow-hidden aspect-video border border-slate-200 dark:border-slate-800 shadow-md bg-slate-100 dark:bg-slate-800">
+          <video src={videoUrl} controls className="w-full h-full object-cover" />
+        </div>
+      )}
 
       {/* 3. 5-PHOTO COLLAGE GRID MATCHING SCREENSHOT */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 pt-2">

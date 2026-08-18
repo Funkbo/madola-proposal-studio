@@ -20,5 +20,6 @@ export function formatUKDate(dateString: string): string {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "Europe/London",
   }).format(date);
 }

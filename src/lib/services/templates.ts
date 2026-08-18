@@ -3,27 +3,32 @@ import { ProposalTemplate } from "@/types/template";
 import { ProposalBlock } from "@/types/block-proposal";
 import { createDefaultProposal } from "@/lib/block-defaults";
 
+export const MASTER_TEMPLATE_ID = "template-madola-standard";
+
 export async function getTemplates(): Promise<ProposalTemplate[]> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("proposal_templates")
       .select("id, name, description, active, created_by, created_at, updated_at")
-      .order("created_at", { ascending: false });
+      .eq("id", MASTER_TEMPLATE_ID)
+      .maybeSingle();
 
-    if (error || !data || data.length === 0) {
+    if (error || !data) {
       return getFallbackTemplates();
     }
 
-    return data.map((row) => ({
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      active: row.active,
-      createdBy: row.created_by,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
+    return [
+      {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        active: data.active,
+        createdBy: data.created_by,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      },
+    ];
   } catch (e) {
     return getFallbackTemplates();
   }
@@ -32,27 +37,9 @@ export async function getTemplates(): Promise<ProposalTemplate[]> {
 export function getFallbackTemplates(): ProposalTemplate[] {
   return [
     {
-      id: "template-madola-standard",
+      id: MASTER_TEMPLATE_ID,
       name: "Madola Standard Proposal Template",
       description: "Default high-conversion UK residential solar & battery specification template.",
-      active: true,
-      createdBy: "system",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: "template-madola-premium-tesla",
-      name: "Madola Premium Tesla Powerwall Template",
-      description: "Luxury specification layout tailored for Tesla Powerwall 3.0 systems.",
-      active: true,
-      createdBy: "system",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: "template-madola-duracell",
-      name: "Madola Duracell Energy Storage Template",
-      description: "Standard residential specification highlighting Duracell Dura16 modular storage.",
       active: true,
       createdBy: "system",
       createdAt: new Date().toISOString(),

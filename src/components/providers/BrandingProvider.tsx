@@ -1,11 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useLayoutEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   CompanyBrandingData,
   DEFAULT_BRANDING_DATA,
   getCompanyBranding,
+  getCachedCompanyBranding,
   getPublicCompanyBranding,
   applyThemeCssVariables,
 } from "@/lib/repositories/companyBrandingRepository";
@@ -15,7 +16,16 @@ const BrandingContext = createContext<CompanyBrandingData>(DEFAULT_BRANDING_DATA
 
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  // NOTE: initial state must be identical on server and client (no localStorage
+  // reads here) or hydration mismatches crash the page. Cached colors are applied
+  // as CSS variables before paint instead — see layout.tsx head script.
   const [branding, setBranding] = useState<CompanyBrandingData>(DEFAULT_BRANDING_DATA);
+
+  // Apply cached brand colors before first paint (pure side effect, no render)
+  useLayoutEffect(() => {
+    const cached = getCachedCompanyBranding();
+    if (cached) applyThemeCssVariables(cached);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;

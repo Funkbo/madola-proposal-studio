@@ -58,6 +58,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     saveNotifications(notifications);
   }, [notifications]);
 
+  // Listen for notifications written from outside the provider (e.g. server
+  // actions, public proposal pages, upload flows) so the bell stays in sync.
+  useEffect(() => {
+    function handleExternalChange() {
+      setNotifications(getStoredNotifications());
+    }
+    window.addEventListener("madola-notifications-changed", handleExternalChange);
+    window.addEventListener("storage", handleExternalChange);
+    return () => {
+      window.removeEventListener("madola-notifications-changed", handleExternalChange);
+      window.removeEventListener("storage", handleExternalChange);
+    };
+  }, []);
+
   const addNotification = useCallback((notification: Omit<Notification, "id" | "timestamp" | "read">) => {
     const newNotification: Notification = {
       ...notification,
@@ -138,9 +152,14 @@ function formatTimeAgo(date: Date): string {
 
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -183,14 +202,14 @@ export function NotificationBell() {
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "p-2.5 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none relative transition-all active:scale-95",
-          unreadCount > 0 && "text-emerald-500"
+          mounted && unreadCount > 0 && "text-emerald-500"
         )}
-        aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+        aria-label={`Notifications${mounted && unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
         <Bell className="w-5 h-5" />
-        {unreadCount > 0 && (
+        {mounted && unreadCount > 0 && (
           <span className="absolute top-1.5 right-1.5 min-w-[18px] h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center px-1.5 animate-pulse-glow">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
@@ -323,16 +342,73 @@ export function NotificationBell() {
   );
 }
 
-// Helper functions to trigger notifications from anywhere
-export function notifyProposalAccepted(proposalRef: string, customerName: string) {
-  // This would be called from server actions or API routes
-  // For client-side, use the context directly
+// Helper functions to trigger notifications from anywhere (server actions,
+// upload flows, public proposal pages). Writes directly to localStorage and
+// dispatches an event so an open NotificationProvider re-syncs immediately.
+function pushNotification(
+  type: NotificationType,
+  title: string,
+  description: string,
+  actionUrl?: string,
+  actionLabel?: string
+) {
+  if (typeof window === "undefined") return;
+
+  const notification: Notification = {
+    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    type,
+    title,
+    description,
+    timestamp: new Date(),
+    read: false,
+    actionUrl,
+    actionLabel,
+  };
+
+  try {
+    const stored = getStoredNotifications();
+    saveNotifications([notification, ...stored].slice(0, 50));
+  } catch {}
+
+  window.dispatchEvent(new CustomEvent("madola-notifications-changed"));
+}
+
+export function notifyProposalAccepted(proposalRef: string, customerName: string, actionUrl?: string) {
+  pushNotification(
+    "proposal_accepted",
+    "Proposal Accepted",
+    `${customerName} accepted proposal ${proposalRef}`,
+    actionUrl,
+    "View Proposal"
+  );
 }
 
 export function notifyCustomerCreated(customerName: string, customerId: string) {
-  // Client-side usage example
+  pushNotification(
+    "customer_created",
+    "New Customer Added",
+    `${customerName} added to the customer directory`,
+    customerId ? `/customers/${customerId}` : "/customers",
+    "View Customer"
+  );
 }
 
-export function notifyProposalCreated(proposalRef: string, customerName: string) {}
+export function notifyProposalCreated(proposalRef: string, customerName: string, actionUrl?: string) {
+  pushNotification(
+    "proposal_created",
+    "New Proposal Created",
+    `Proposal ${proposalRef} created for ${customerName}`,
+    actionUrl,
+    "View Proposal"
+  );
+}
 
-export function notifyProposalViewed(proposalRef: string, customerName: string) {}
+export function notifyProposalViewed(proposalRef: string, customerName: string) {
+  pushNotification(
+    "proposal_viewed",
+    "Proposal Viewed",
+    `${customerName} viewed proposal ${proposalRef}`,
+    undefined,
+    undefined
+  );
+}

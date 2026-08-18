@@ -3,7 +3,27 @@ import { ProposalTemplate } from "@/types/template";
 import { ProposalBlock } from "@/types/block-proposal";
 import { createDefaultProposal } from "@/lib/block-defaults";
 import { uploadMediaAsset } from "@/lib/repositories/mediaRepository";
-import { X, ArrowUp, ArrowDown, Eye, EyeOff, Save, Image as ImageIcon, Plus, Check, FileText, Upload, Trash2, Loader2 } from "lucide-react";
+import { MASTER_TEMPLATE_ID } from "@/lib/services/templateCache";
+import { TEMPLATE_VARIABLES } from "@/lib/template-variables";
+import {
+  X,
+  ArrowUp,
+  ArrowDown,
+  Eye,
+  EyeOff,
+  Save,
+  Image as ImageIcon,
+  Plus,
+  Check,
+  FileText,
+  Upload,
+  Trash2,
+  Loader2,
+  Video,
+  Link2,
+  Braces,
+  ChevronDown,
+} from "lucide-react";
 
 export interface TemplateEditorModalProps {
   isOpen: boolean;
@@ -11,6 +31,261 @@ export interface TemplateEditorModalProps {
   template?: ProposalTemplate | null;
   initialBlocks?: ProposalBlock[];
   onSaveSuccess: (updatedTemplate: ProposalTemplate, blocks?: ProposalBlock[]) => void;
+}
+
+type FieldKind = "text" | "textarea" | "image" | "video" | "bullet_list" | "check";
+
+interface FieldDef {
+  key: string;
+  label: string;
+  kind: FieldKind;
+  hint?: string;
+}
+
+interface BlockFieldSchema {
+  type: string;
+  title: string;
+  fields: FieldDef[];
+}
+
+const BLOCK_FIELD_SCHEMAS: BlockFieldSchema[] = [
+  {
+    type: "cover",
+    title: "Cover",
+    fields: [
+      { key: "proposalTitle", label: "Proposal Main Title", kind: "text" },
+      { key: "subtitle", label: "Subtitle / Tagline", kind: "text" },
+      { key: "greeting", label: "Greeting", kind: "text" },
+      { key: "introText", label: "Introductory Message Text", kind: "textarea" },
+      { key: "heroImage", label: "Hero Banner Image", kind: "image", hint: "Large banner image at the top of the cover section." },
+      { key: "preparedBy.name", label: "Advisor Name", kind: "text" },
+      { key: "preparedBy.email", label: "Advisor Email", kind: "text" },
+      { key: "preparedBy.phone", label: "Advisor Phone", kind: "text" },
+      { key: "preparedBy.profileImage", label: "Advisor Photo", kind: "image", hint: "Circular profile photo shown on the cover intro card." },
+    ],
+  },
+  {
+    type: "why_choose_us",
+    title: "Why Choose Us",
+    fields: [
+      { key: "heading", label: "Section Heading", kind: "text" },
+      { key: "paragraph1", label: "Paragraph 1 (Company Heritage)", kind: "textarea" },
+      { key: "paragraph2", label: "Paragraph 2 (Our Commitment)", kind: "textarea" },
+      { key: "madolaWayHeading", label: "Subheading (The Madola way)", kind: "text" },
+      { key: "closingLine", label: "Closing Tagline", kind: "text" },
+    ],
+  },
+  {
+    type: "text",
+    title: "Text / Trustpilot",
+    fields: [
+      { key: "pillBadge", label: "Section Label Badge", kind: "text" },
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "bodyText", label: "Body Content", kind: "textarea" },
+      { key: "bulletPoints", label: "Bullet Points (one per line)", kind: "bullet_list" },
+      { key: "isTrustpilot", label: "Render as Trustpilot Review Widget", kind: "check" },
+      { key: "videoUrl", label: "Video (MP4/WebM)", kind: "video", hint: "Optional embedded video. Upload a video file or paste a direct video URL." },
+    ],
+  },
+  {
+    type: "our_work",
+    title: "Our Work",
+    fields: [
+      { key: "pillBadge", label: "Section Label Badge", kind: "text" },
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "description", label: "Introductory Description", kind: "textarea" },
+      { key: "videoUrl", label: "Video (MP4/WebM)", kind: "video", hint: "Optional embedded video." },
+    ],
+  },
+  {
+    type: "panel_layout",
+    title: "Panel Layout & System Output",
+    fields: [
+      { key: "pillBadge", label: "Section Label Badge", kind: "text" },
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "layoutImage", label: "Roof / Layout Diagram Image", kind: "image", hint: "The solar panel roof layout diagram." },
+    ],
+  },
+  {
+    type: "product_highlights",
+    title: "Product Highlights",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "introText", label: "Introductory Text", kind: "textarea" },
+      { key: "batteryTitle", label: "Battery Title", kind: "text" },
+      { key: "batterySubtitle", label: "Battery Subtitle", kind: "textarea" },
+      { key: "batteryImage", label: "Battery Image", kind: "image" },
+      { key: "inverterTitle", label: "Inverter Title", kind: "text" },
+      { key: "inverterSubtitle", label: "Inverter Subtitle", kind: "textarea" },
+      { key: "inverterImage", label: "Inverter Image", kind: "image" },
+      { key: "panelTitle", label: "Solar Panel Title", kind: "text" },
+      { key: "panelSubtitle", label: "Solar Panel Subtitle", kind: "textarea" },
+      { key: "panelImage", label: "Solar Panel Image", kind: "image" },
+    ],
+  },
+  {
+    type: "technical_details",
+    title: "Technical Details",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "introText", label: "Introductory Text", kind: "textarea" },
+      { key: "roofGroup", label: "Roof Group Label", kind: "text" },
+      { key: "orientation", label: "Orientation (e.g. 59° from south)", kind: "text" },
+      { key: "pitch", label: "Pitch (e.g. 37°)", kind: "text" },
+      { key: "panelGroupLabel", label: "Panel Group Label", kind: "text" },
+      { key: "kwhPerKwp", label: "kWh/kWp (Kk)", kind: "text" },
+      { key: "disclaimerText", label: "Sunpath Shade Disclaimer", kind: "textarea" },
+    ],
+  },
+  {
+    type: "performance_estimates",
+    title: "Performance Estimates",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "installedCapacityLabel", label: "Installed Capacity Label", kind: "text" },
+      { key: "postcodeRegion", label: "Postcode Region", kind: "text" },
+      { key: "shadeFactor", label: "Shade Factor (SF)", kind: "text" },
+      { key: "disclaimer", label: "MCS Disclaimer", kind: "textarea" },
+    ],
+  },
+  {
+    type: "energy_usage",
+    title: "Energy Usage & Profile",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "baselineLabel", label: "Baseline Label", kind: "text" },
+      { key: "billLabel", label: "Estimated Bill Label", kind: "text" },
+    ],
+  },
+  {
+    type: "self_consumption",
+    title: "Self-Consumption",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "subtitle", label: "Subtitle", kind: "text" },
+      { key: "directToHomeLabel", label: "Direct to Home Label", kind: "text" },
+      { key: "directToHomeKwh", label: "Direct to Home (kWh)", kind: "text" },
+      { key: "batteryToHomeLabel", label: "Stored in Battery Label", kind: "text" },
+      { key: "batteryToHomeKwh", label: "Stored in Battery (kWh)", kind: "text" },
+      { key: "exportToGridLabel", label: "Exported to Grid Label", kind: "text" },
+      { key: "exportToGridKwh", label: "Exported to Grid (kWh)", kind: "text" },
+    ],
+  },
+  {
+    type: "before_after_solar",
+    title: "Before vs After Solar",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "beforeLabel", label: "Before Label", kind: "text" },
+      { key: "beforeNote", label: "Before Note", kind: "text" },
+      { key: "afterLabel", label: "After Label", kind: "text" },
+      { key: "afterNote", label: "After Note", kind: "text" },
+    ],
+  },
+  {
+    type: "pricing",
+    title: "Pricing",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "subheading", label: "Subheading", kind: "text" },
+    ],
+  },
+  {
+    type: "savings",
+    title: "Savings",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "gridSavingsLabel", label: "Grid Savings Label", kind: "text" },
+      { key: "exportIncomeLabel", label: "Export Income Label", kind: "text" },
+      { key: "totalSavingsLabel", label: "Total Savings Label", kind: "text" },
+    ],
+  },
+  {
+    type: "return_on_investment",
+    title: "Return on Investment",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "roiLabel", label: "ROI Label", kind: "text" },
+      { key: "breakEvenLabel", label: "Break-Even Label", kind: "text" },
+      { key: "lifetimeLabel", label: "Lifetime Label", kind: "text" },
+    ],
+  },
+  {
+    type: "whats_included",
+    title: "What's Included",
+    fields: [
+      { key: "pillBadge", label: "Section Label Badge", kind: "text" },
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "videoUrl", label: "Video (MP4/WebM)", kind: "video", hint: "Optional embedded video." },
+    ],
+  },
+  {
+    type: "ev_charger",
+    title: "Add an EV?",
+    fields: [
+      { key: "pillBadge", label: "Section Label Badge", kind: "text" },
+      { key: "heading", label: "Heading", kind: "text" },
+    ],
+  },
+  {
+    type: "extra_products",
+    title: "Extra Products",
+    fields: [
+      { key: "pillBadge", label: "Section Label Badge", kind: "text" },
+      { key: "heading", label: "Heading", kind: "text" },
+    ],
+  },
+  {
+    type: "next_steps",
+    title: "Next Steps",
+    fields: [
+      { key: "pillBadge", label: "Section Label Badge", kind: "text" },
+      { key: "heading", label: "Heading", kind: "text" },
+    ],
+  },
+  {
+    type: "payment_schedule",
+    title: "Payment Schedule",
+    fields: [
+      { key: "headline", label: "Headline", kind: "text" },
+      { key: "description", label: "Description", kind: "textarea" },
+    ],
+  },
+  {
+    type: "final_price_summary",
+    title: "Final Price Summary",
+    fields: [
+      { key: "headline", label: "Headline", kind: "text" },
+      { key: "notes", label: "Notes", kind: "textarea" },
+    ],
+  },
+  {
+    type: "acceptance",
+    title: "Acceptance & Next Steps",
+    fields: [
+      { key: "headline", label: "Headline", kind: "text" },
+      { key: "termsNotice", label: "Terms Notice", kind: "textarea" },
+    ],
+  },
+];
+
+function getNestedValue(obj: any, path: string): any {
+  return path.split(".").reduce((acc, part) => (acc == null ? acc : acc[part]), obj);
+}
+
+function setNestedValue(obj: any, path: string, value: any): any {
+  const parts = path.split(".");
+  const result = { ...obj };
+  let current = result;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!current[parts[i]] || typeof current[parts[i]] !== "object") {
+      current[parts[i]] = {};
+    }
+    current[parts[i]] = { ...current[parts[i]] };
+    current = current[parts[i]];
+  }
+  current[parts[parts.length - 1]] = value;
+  return result;
 }
 
 export function TemplateEditorModal({
@@ -34,57 +309,55 @@ export function TemplateEditorModal({
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploadingTarget, setUploadingTarget] = useState<string | null>(null);
+  const [openVariableField, setOpenVariableField] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) || blocks[0];
+  const selectedSchema = BLOCK_FIELD_SCHEMAS.find((s) => s.type === selectedBlock.type);
 
-  // File Upload Handler for Template Images
-  const handleImageFileUpload = async (
+  // Generic File Upload Handler (images + videos)
+  const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    target: "hero" | "profile" | "gallery",
-    galleryIndex?: number
+    target: { blockId: string; key: string; galleryIndex?: number }
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploadingTarget(target + (galleryIndex !== undefined ? `-${galleryIndex}` : ""));
+    const isVideo = file.type.startsWith("video/");
+    setUploadingTarget(target.key + (target.galleryIndex !== undefined ? `-${target.galleryIndex}` : ""));
 
     try {
-      const { asset, error } = await uploadMediaAsset(file, { category: "template" });
+      const { asset, error } = await uploadMediaAsset(file, {
+        category: "template",
+        name: isVideo ? `video-${target.key}` : undefined,
+      });
       if (error || !asset) {
-        alert(error || "Failed to upload image.");
+        alert(error || "Failed to upload file.");
         return;
       }
 
-      const imageUrl = asset.publicUrl;
+      const mediaUrl = asset.publicUrl;
 
       setBlocks((prev) =>
         prev.map((b) => {
-          if (b.type === "cover") {
-            if (target === "hero") {
-              return { ...b, data: { ...b.data, heroImage: imageUrl } };
-            }
-            if (target === "profile") {
-              return {
-                ...b,
-                data: {
-                  ...b.data,
-                  preparedBy: { ...b.data?.preparedBy, profileImage: imageUrl },
-                },
-              };
-            }
-          }
-          if (b.type === "our_work" && target === "gallery" && galleryIndex !== undefined) {
+          if (b.id !== target.blockId) return b;
+
+          // Gallery (our_work images) updates
+          if (target.key === "images" && target.galleryIndex !== undefined) {
             const currentImages = Array.isArray(b.data?.images) ? [...b.data.images] : [];
-            currentImages[galleryIndex] = imageUrl;
+            currentImages[target.galleryIndex] = mediaUrl;
             return { ...b, data: { ...b.data, images: currentImages } };
           }
-          return b;
+          if (target.key === "images" && target.galleryIndex === undefined) {
+            return { ...b, data: { ...b.data, videoUrl: mediaUrl } };
+          }
+
+          return { ...b, data: setNestedValue(b.data, target.key, mediaUrl) };
         })
       );
     } catch (err: any) {
-      alert(`Upload error: ${err.message || "Failed to upload image"}`);
+      alert(`Upload error: ${err.message || "Failed to upload file"}`);
     } finally {
       setUploadingTarget(null);
     }
@@ -124,14 +397,18 @@ export function TemplateEditorModal({
         b.id === selectedBlock.id
           ? {
               ...b,
-              data: {
-                ...b.data,
-                [key]: value,
-              },
+              data: setNestedValue(b.data, key, value),
             }
           : b
       )
     );
+  };
+
+  // Insert a dynamic {{variable}} placeholder into a text field
+  const handleInsertVariable = (key: string, variableKey: string) => {
+    const current = getNestedValue(selectedBlock.data, key);
+    const existing = typeof current === "string" ? current : "";
+    handleBlockDataChange(key, existing + (existing.endsWith(" ") || existing === "" ? "" : " ") + `{{${variableKey}}}`);
   };
 
   // Save Template Action
@@ -140,7 +417,7 @@ export function TemplateEditorModal({
     setSaveSuccess(false);
 
     try {
-      const templateId = template?.id || `template-${Date.now()}`;
+      const templateId = template?.id || MASTER_TEMPLATE_ID;
       const savedTpl: ProposalTemplate = {
         id: templateId,
         name,
@@ -195,7 +472,7 @@ export function TemplateEditorModal({
                 {isEditing && template ? `Edit Template: ${template.name}` : "Create New Proposal Template"}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Customize raw template sections, text content, pictures, and layout ordering.
+                Customize sections, text content, pictures, videos, and layout ordering. Changes appear on every customer proposal.
               </p>
             </div>
           </div>
@@ -217,7 +494,7 @@ export function TemplateEditorModal({
                 : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
           >
-            Raw Sections & Text
+            Sections, Text & Media
           </button>
           <button
             onClick={() => setActiveTab("images")}
@@ -254,7 +531,7 @@ export function TemplateEditorModal({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                  placeholder="e.g. Madola Luxury Solar Template"
+                  placeholder="e.g. Madola Master Proposal Template"
                 />
               </div>
               <div>
@@ -366,109 +643,261 @@ export function TemplateEditorModal({
                   />
                 </div>
 
-                {/* Cover / Hero Block Fields */}
-                {selectedBlock.type === "cover" && (
+                {/* Schema-driven editable fields */}
+                {selectedSchema ? (
                   <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Proposal Main Title
-                      </label>
-                      <input
-                        type="text"
-                        value={selectedBlock.data?.proposalTitle || ""}
-                        onChange={(e) => handleBlockDataChange("proposalTitle", e.target.value)}
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Subtitle / Tagline
-                      </label>
-                      <input
-                        type="text"
-                        value={selectedBlock.data?.subtitle || ""}
-                        onChange={(e) => handleBlockDataChange("subtitle", e.target.value)}
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Introductory Message Text
-                      </label>
-                      <textarea
-                        rows={4}
-                        value={selectedBlock.data?.introText || ""}
-                        onChange={(e) => handleBlockDataChange("introText", e.target.value)}
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      />
-                    </div>
-                  </div>
-                )}
+                    {selectedSchema.fields.map((field) => {
+                      const fieldValue = getNestedValue(selectedBlock.data, field.key);
 
-                {/* Why Choose Us Block Fields */}
-                {selectedBlock.type === "why_choose_us" && (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Section Heading
-                      </label>
-                      <input
-                        type="text"
-                        value={selectedBlock.data?.heading || ""}
-                        onChange={(e) => handleBlockDataChange("heading", e.target.value)}
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Paragraph 1 (Company Heritage)
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={selectedBlock.data?.paragraph1 || ""}
-                        onChange={(e) => handleBlockDataChange("paragraph1", e.target.value)}
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Paragraph 2 (Our Commitment)
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={selectedBlock.data?.paragraph2 || ""}
-                        onChange={(e) => handleBlockDataChange("paragraph2", e.target.value)}
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      />
-                    </div>
-                  </div>
-                )}
+                      if (field.kind === "image" || field.kind === "video") {
+                        const isVideoField = field.kind === "video";
+                        return (
+                          <div key={field.key} className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {isVideoField ? (
+                                  <Video className="w-4 h-4 text-purple-500" />
+                                ) : (
+                                  <ImageIcon className="w-4 h-4 text-emerald-500" />
+                                )}
+                                <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                  {field.label}
+                                </span>
+                              </div>
+                              {uploadingTarget === field.key && (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
+                                  <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
+                                </span>
+                              )}
+                            </div>
 
-                {/* Generic Text Block Fields */}
-                {selectedBlock.type === "text" && (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Heading
-                      </label>
-                      <input
-                        type="text"
-                        value={selectedBlock.data?.heading || ""}
-                        onChange={(e) => handleBlockDataChange("heading", e.target.value)}
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Body Content
-                      </label>
-                      <textarea
-                        rows={5}
-                        value={selectedBlock.data?.content || ""}
-                        onChange={(e) => handleBlockDataChange("content", e.target.value)}
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      />
-                    </div>
+                            {field.hint && (
+                              <p className="text-[11px] text-slate-500 leading-relaxed">{field.hint}</p>
+                            )}
+
+                            <div className="flex items-center gap-2">
+                              <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition shrink-0">
+                                <Upload className="w-3.5 h-3.5" /> {isVideoField ? "Upload Video" : "Upload File"}
+                                <input
+                                  type="file"
+                                  accept={isVideoField ? "video/*" : "image/*"}
+                                  className="hidden"
+                                  onChange={(e) => handleFileUpload(e, { blockId: selectedBlock.id, key: field.key })}
+                                />
+                              </label>
+                              <input
+                                type="text"
+                                value={fieldValue || ""}
+                                onChange={(e) => handleBlockDataChange(field.key, e.target.value)}
+                                className="w-full px-2.5 py-1 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
+                                placeholder={isVideoField ? "Video URL or empty to remove" : "Image URL"}
+                              />
+                            </div>
+
+                            {fieldValue && (
+                              <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800">
+                                {isVideoField ? (
+                                  <video
+                                    src={fieldValue}
+                                    className="w-full max-h-40 object-contain"
+                                    controls
+                                  />
+                                ) : (
+                                  <img
+                                    src={fieldValue}
+                                    alt={field.label}
+                                    onError={(e) => {
+                                      (e.currentTarget as HTMLImageElement).style.display = "none";
+                                    }}
+                                    className="w-full h-36 object-cover"
+                                  />
+                                )}
+                                {fieldValue && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleBlockDataChange(field.key, "")}
+                                    className="absolute top-1.5 right-1.5 p-1 rounded-full bg-slate-950/80 text-rose-400 hover:text-rose-200 transition"
+                                    title="Remove media"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      if (field.kind === "bullet_list") {
+                        const bullets: string[] = Array.isArray(fieldValue) ? fieldValue : [];
+                        return (
+                          <div key={field.key} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                {field.label}
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => setOpenVariableField(openVariableField === field.key ? null : field.key)}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 transition"
+                                title="Insert a dynamic value that resolves from the customer's proposal data"
+                              >
+                                <Braces className="w-3 h-3" />
+                                Insert Variable
+                              </button>
+                            </div>
+                            {openVariableField === field.key && (
+                              <div className="p-2 rounded-lg border border-violet-500/30 bg-violet-500/5 max-h-40 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                {TEMPLATE_VARIABLES.map((v) => (
+                                  <button
+                                    key={v.key}
+                                    type="button"
+                                    onClick={() => {
+                                      const lastLine = bullets.length > 0 ? bullets[bullets.length - 1] : "";
+                                      const updated = [...bullets];
+                                      updated[updated.length - 1] = lastLine + (lastLine.endsWith(" ") || lastLine === "" ? "" : " ") + `{{${v.key}}}`;
+                                      handleBlockDataChange(field.key, updated.filter((l) => l !== "").length > 0 ? updated : [`{{${v.key}}}`]);
+                                    }}
+                                    className="text-left px-2 py-1.5 rounded-md text-[11px] hover:bg-violet-500/10 transition"
+                                    title={v.description}
+                                  >
+                                    <span className="font-mono text-violet-600 dark:text-violet-400">{"{{"}{v.key}{"}}"}</span>
+                                    <span className="block text-[10px] text-slate-500 truncate">{v.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            <textarea
+                              rows={3}
+                              value={bullets.join("\n")}
+                              onChange={(e) =>
+                                handleBlockDataChange(
+                                  field.key,
+                                  e.target.value
+                                    .split("\n")
+                                    .map((l) => l.trim())
+                                    .filter(Boolean)
+                                )
+                              }
+                              className="w-full px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                            />
+                          </div>
+                        );
+                      }
+
+                      if (field.kind === "check") {
+                        return (
+                          <label
+                            key={field.key}
+                            className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={Boolean(fieldValue)}
+                              onChange={(e) => handleBlockDataChange(field.key, e.target.checked)}
+                              className="w-4 h-4 accent-emerald-600"
+                            />
+                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                              {field.label}
+                            </span>
+                          </label>
+                        );
+                      }
+
+                      if (field.kind === "textarea") {
+                        return (
+                          <div key={field.key}>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                {field.label}
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => setOpenVariableField(openVariableField === field.key ? null : field.key)}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 transition"
+                                title="Insert a dynamic value that resolves from the customer's proposal data"
+                              >
+                                <Braces className="w-3 h-3" />
+                                Insert Variable
+                              </button>
+                            </div>
+                            {openVariableField === field.key && (
+                              <div className="mb-2 p-2 rounded-lg border border-violet-500/30 bg-violet-500/5 max-h-40 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                {TEMPLATE_VARIABLES.map((v) => (
+                                  <button
+                                    key={v.key}
+                                    type="button"
+                                    onClick={() => handleInsertVariable(field.key, v.key)}
+                                    className="text-left px-2 py-1.5 rounded-md text-[11px] hover:bg-violet-500/10 transition"
+                                    title={v.description}
+                                  >
+                                    <span className="font-mono text-violet-600 dark:text-violet-400">{"{{"}{v.key}{"}}"}</span>
+                                    <span className="block text-[10px] text-slate-500 truncate">{v.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            <textarea
+                              rows={3}
+                              value={fieldValue || ""}
+                              onChange={(e) => handleBlockDataChange(field.key, e.target.value)}
+                              className="w-full px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                            />
+                            {field.hint && (
+                              <p className="text-[10px] text-slate-400 mt-1">{field.hint}</p>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div key={field.key}>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                              {field.label}
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setOpenVariableField(openVariableField === field.key ? null : field.key)}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 transition"
+                              title="Insert a dynamic value that resolves from the customer's proposal data"
+                            >
+                              <Braces className="w-3 h-3" />
+                              Insert Variable
+                            </button>
+                          </div>
+                          {openVariableField === field.key && (
+                            <div className="mb-2 p-2 rounded-lg border border-violet-500/30 bg-violet-500/5 max-h-40 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1">
+                              {TEMPLATE_VARIABLES.map((v) => (
+                                <button
+                                  key={v.key}
+                                  type="button"
+                                  onClick={() => handleInsertVariable(field.key, v.key)}
+                                  className="text-left px-2 py-1.5 rounded-md text-[11px] hover:bg-violet-500/10 transition"
+                                  title={v.description}
+                                >
+                                  <span className="font-mono text-violet-600 dark:text-violet-400">{"{{"}{v.key}{"}}"}</span>
+                                  <span className="block text-[10px] text-slate-500 truncate">{v.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          <input
+                            type="text"
+                            value={fieldValue || ""}
+                            onChange={(e) => handleBlockDataChange(field.key, e.target.value)}
+                            className="w-full px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                          />
+                          {field.hint && (
+                            <p className="text-[10px] text-slate-400 mt-1">{field.hint}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-6 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-xs text-slate-500">
+                    No editable fields defined for block type "{selectedBlock.type}".
                   </div>
                 )}
               </div>
@@ -482,7 +911,7 @@ export function TemplateEditorModal({
                   Upload Template Pictures & Media
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Upload image files directly from your computer to Supabase Storage. Uploaded pictures will appear on all hydrated customer proposals.
+                  Upload image or video files directly from your computer to Supabase Storage. Uploaded media will appear on all customer proposals.
                 </p>
               </div>
 
@@ -494,7 +923,7 @@ export function TemplateEditorModal({
                       <ImageIcon className="w-4 h-4 text-emerald-500" />
                       <h4 className="text-xs font-bold text-slate-900 dark:text-white">Cover Hero Banner Picture</h4>
                     </div>
-                    {uploadingTarget === "hero" && (
+                    {uploadingTarget === "heroImage" && (
                       <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
                         <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
                       </span>
@@ -508,7 +937,7 @@ export function TemplateEditorModal({
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => handleImageFileUpload(e, "hero")}
+                        onChange={(e) => handleFileUpload(e, { blockId: coverBlock?.id || "", key: "heroImage" })}
                       />
                     </label>
                     <input
@@ -543,7 +972,7 @@ export function TemplateEditorModal({
                       <ImageIcon className="w-4 h-4 text-emerald-500" />
                       <h4 className="text-xs font-bold text-slate-900 dark:text-white">Advisor / Specialist Photo</h4>
                     </div>
-                    {uploadingTarget === "profile" && (
+                    {uploadingTarget === "preparedBy.profileImage" && (
                       <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
                         <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
                       </span>
@@ -557,7 +986,9 @@ export function TemplateEditorModal({
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => handleImageFileUpload(e, "profile")}
+                        onChange={(e) =>
+                          handleFileUpload(e, { blockId: coverBlock?.id || "", key: "preparedBy.profileImage" })
+                        }
                       />
                     </label>
                     <input
@@ -659,7 +1090,9 @@ export function TemplateEditorModal({
                             type="file"
                             accept="image/*"
                             className="hidden"
-                            onChange={(e) => handleImageFileUpload(e, "gallery", idx)}
+                            onChange={(e) =>
+                              handleFileUpload(e, { blockId: ourWorkBlock?.id || "", key: "images", galleryIndex: idx })
+                            }
                           />
                         </label>
                         <span className="text-[11px] text-slate-400 font-mono truncate">Photo #{idx + 1}</span>
@@ -702,4 +1135,3 @@ export function TemplateEditorModal({
     </div>
   );
 }
-

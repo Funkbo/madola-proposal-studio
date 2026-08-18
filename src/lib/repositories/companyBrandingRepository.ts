@@ -28,6 +28,7 @@ export interface StorageAsset {
 }
 
 const BUCKET_NAME = "company-branding";
+const BRANDING_CACHE_KEY = "madola_branding_cache_v2";
 export const DEFAULT_COMPANY_ID = "5c813b60-7b97-47c1-9457-11f98adfb9b7";
 export const STATIC_FALLBACK_LOGO_URL = "/branding/madola-energy-logo.svg";
 export const PUBLIC_SUPABASE_LOGO_URL =
@@ -79,6 +80,32 @@ export function applyThemeCssVariables(data: Partial<CompanyBrandingData>) {
   root.style.setProperty("--brand-button-text", buttonText);
   root.style.setProperty("--border-focus", primary);
   root.style.setProperty("--color-success", primary);
+}
+
+/**
+ * Synchronously read the last applied branding from localStorage.
+ * Used to apply brand colors before first paint (no color flash).
+ */
+export function getCachedCompanyBranding(): CompanyBrandingData | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(BRANDING_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || typeof parsed.primaryColor !== "string") return null;
+    return { ...DEFAULT_BRANDING_DATA, ...parsed };
+  } catch {
+    return null;
+  }
+}
+
+function cacheCompanyBranding(data: CompanyBrandingData) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(BRANDING_CACHE_KEY, JSON.stringify(data));
+  } catch {
+    // ignore quota/private-mode failures
+  }
 }
 
 /**
@@ -170,6 +197,7 @@ export async function getCompanyBranding(): Promise<CompanyBrandingData> {
         };
 
         applyThemeCssVariables(result);
+        cacheCompanyBranding(result);
         return result;
       }
     } catch (e) {
@@ -218,6 +246,7 @@ export async function getPublicCompanyBranding(): Promise<Partial<CompanyBrandin
         };
 
         applyThemeCssVariables(result);
+        cacheCompanyBranding({ ...DEFAULT_BRANDING_DATA, ...result });
         return result;
       }
     } catch (e) {

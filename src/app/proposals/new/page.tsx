@@ -14,6 +14,10 @@ import {
 } from "@/lib/repositories/interactiveProposalRepository";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  notifyCustomerCreated,
+  notifyProposalCreated,
+} from "@/components/ui/NotificationDropdown";
+import {
   UploadCloud,
   FileText,
   AlertCircle,
@@ -35,6 +39,10 @@ export default function NewProposalPage() {
 
   // Extracted result state
   const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null);
+
+  // Public token assigned when the proposal record is auto-created on upload.
+  // Reused by save/publish/preview so we never create duplicate proposal records.
+  const [autoProposalToken, setAutoProposalToken] = useState<string>("");
 
   useEffect(() => {
     getCustomers().then((list) => {
@@ -104,6 +112,7 @@ export default function NewProposalPage() {
 
       // 3. Send ONLY the extracted text (~few KB) to server action (bypasses Vercel 4.5MB body limit)
       setUploadStep("Analysing extracted proposal data...");
+      const { getFieldPatterns } = await import("@/lib/fieldPatterns");
       const res = await processStoredOpenSolarPdfAction({
         bucket: "proposal-pdfs",
         path: `browser/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9_.-]/g, "_")}`,
@@ -111,6 +120,7 @@ export default function NewProposalPage() {
         fileSize: file.size,
         mimeType: file.type || "application/pdf",
         fallbackText: extractedText,
+        fieldPatterns: getFieldPatterns(),
       });
 
       if (!res.success || !res.extraction) {
@@ -121,11 +131,33 @@ export default function NewProposalPage() {
 
       // 4. Synchronize customer profile
       setUploadStep("Data extracted! Synchronizing customer profile...");
+      let syncedCustomerName = "";
       try {
         const { autoCreateCustomerFromExtraction } = await import("@/lib/repositories/customerRepository");
-        await autoCreateCustomerFromExtraction(res.extraction);
+        const customer = await autoCreateCustomerFromExtraction(res.extraction);
+        syncedCustomerName = customer ? `${customer.firstName} ${customer.lastName}` : "";
+        if (customer) {
+          notifyCustomerCreated(syncedCustomerName, customer.id);
+        }
       } catch (custErr) {
         console.warn("Auto customer creation notice:", custErr);
+      }
+
+      // 5. Auto-create the proposal record (draft) immediately after upload,
+      // so both the customer entry and the proposal entry exist once the PDF
+      // is saved. The admin can then review and publish the same record.
+      setUploadStep("Creating proposal record...");
+      const token = generateSecurePublicToken();
+      try {
+        const interactiveData = convertExtractionToInteractiveProposal(res.extraction, token, "draft");
+        await saveInteractiveProposal(interactiveData);
+        setAutoProposalToken(token);
+        const customerName =
+          syncedCustomerName ||
+          String(res.extraction?.customerName?.value || res.extraction?.normalised?.customer?.customerName || "Customer");
+        notifyProposalCreated(interactiveData.reference, customerName, `/p/${token}`);
+      } catch (propErr) {
+        console.warn("Auto proposal creation notice:", propErr);
       }
 
       setUploadStep("Extraction complete!");
@@ -140,7 +172,7 @@ export default function NewProposalPage() {
 
   const handleSaveDraft = async (data: ExtractionResult, templateId?: string) => {
     try {
-      const token = generateSecurePublicToken();
+      const token = autoProposalToken || generateSecurePublicToken();
       const interactiveData = convertExtractionToInteractiveProposal(data, token, "draft", templateId);
       await saveInteractiveProposal(interactiveData);
       router.push(`/p/${token}`);
@@ -152,7 +184,7 @@ export default function NewProposalPage() {
 
   const handlePublish = async (data: ExtractionResult, templateId?: string) => {
     try {
-      const token = generateSecurePublicToken();
+      const token = autoProposalToken || generateSecurePublicToken();
       const interactiveData = convertExtractionToInteractiveProposal(data, token, "published", templateId);
       await saveInteractiveProposal(interactiveData);
       router.push(`/p/${token}`);
@@ -164,7 +196,7 @@ export default function NewProposalPage() {
 
   const handlePreview = async (data: ExtractionResult, templateId?: string) => {
     try {
-      const token = generateSecurePublicToken();
+      const token = autoProposalToken || generateSecurePublicToken();
       const interactiveData = convertExtractionToInteractiveProposal(data, token, "published", templateId);
       await saveInteractiveProposal(interactiveData);
       window.open(`/p/${token}`, "_blank");

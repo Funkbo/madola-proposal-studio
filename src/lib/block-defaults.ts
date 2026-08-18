@@ -63,9 +63,9 @@ export function createDefaultProposal(): BlockProposal {
           phone: "+44 (0) 800 123 4567",
           profileImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
         },
-        greeting: "Hi ,",
+        greeting: "Hi {{customerName}},",
         introText:
-          "Thanks for your enquiry and for considering Madola Energy for your solar and battery installation.\n\nWe've prepared this proposal based on what we've discussed, with a system designed around your property, your energy usage and what you're looking to achieve.\n\nInside, you'll find your recommended system, product information, pricing and the next steps if you'd like to move forward.\n\nTake a look through everything, and if you have any questions or want to talk through the options, we'll be happy to help.",
+          "Thanks for your enquiry and for considering Madola Energy for your solar and battery installation, {{customerName}}.\n\nWe've prepared this proposal based on what we've discussed, with a system designed around your property, your energy usage and what you're looking to achieve.\n\nInside, you'll find your recommended system, product information, pricing and the next steps if you'd like to move forward.\n\nTake a look through everything, and if you have any questions or want to talk through the options, we'll be happy to help.",
       },
     },
     {
@@ -164,10 +164,110 @@ export function createDefaultProposal(): BlockProposal {
       },
     },
     {
+      id: "block-5-product-highlights",
+      type: "product_highlights",
+      title: "Product Highlights",
+      order: 6,
+      enabled: true,
+      data: {
+        pillBadge: "Product Highlights",
+        heading: "Product highlights",
+        introText: "The system features premium tier-1 hardware engineered for UK weather conditions.",
+      },
+    },
+    {
+      id: "block-6-technical-details",
+      type: "technical_details",
+      title: "Technical details",
+      order: 7,
+      enabled: true,
+      data: {
+        pillBadge: "Technical details",
+        heading: "Technical details",
+      },
+    },
+    {
+      id: "block-7-performance-estimates",
+      type: "performance_estimates",
+      title: "Performance estimates",
+      order: 8,
+      enabled: true,
+      data: {
+        pillBadge: "Performance estimates",
+        heading: "Performance estimates",
+      },
+    },
+    {
+      id: "block-8-energy-usage",
+      type: "energy_usage",
+      title: "Energy usage & profile",
+      order: 9,
+      enabled: true,
+      data: {
+        pillBadge: "Energy usage & profile",
+        heading: "Your Annual Electricity Profile",
+      },
+    },
+    {
+      id: "block-9-self-consumption",
+      type: "self_consumption",
+      title: "Self-consumption",
+      order: 10,
+      enabled: true,
+      data: {
+        pillBadge: "Self-consumption",
+        heading: "Where Will Your Solar Energy Go?",
+      },
+    },
+    {
+      id: "block-10-before-after",
+      type: "before_after_solar",
+      title: "Before vs after solar",
+      order: 11,
+      enabled: true,
+      data: {
+        pillBadge: "Before vs after solar",
+        heading: "Energy Bill Comparison: Before vs After",
+      },
+    },
+    {
+      id: "block-11-pricing",
+      type: "pricing",
+      title: "Pricing",
+      order: 12,
+      enabled: true,
+      data: {
+        pillBadge: "Pricing",
+        heading: "Your System & Pricing",
+      },
+    },
+    {
+      id: "block-12-savings",
+      type: "savings",
+      title: "Savings",
+      order: 13,
+      enabled: true,
+      data: {
+        pillBadge: "Savings",
+        heading: "First-Year Financial Breakdown",
+      },
+    },
+    {
+      id: "block-13-roi",
+      type: "return_on_investment",
+      title: "Return on investment",
+      order: 14,
+      enabled: true,
+      data: {
+        pillBadge: "Return on investment",
+        heading: "Return on Investment (ROI)",
+      },
+    },
+    {
       id: "block-5-whats-included",
       type: "whats_included",
       title: "What's Included",
-      order: 5,
+      order: 15,
       enabled: true,
       data: {
         pillBadge: "What's Included",
@@ -206,7 +306,7 @@ export function createDefaultProposal(): BlockProposal {
       id: "block-6-ev-charger",
       type: "ev_charger",
       title: "Add an EV?",
-      order: 6,
+      order: 16,
       enabled: true,
       data: {
         pillBadge: "Add an EV?",
@@ -217,7 +317,7 @@ export function createDefaultProposal(): BlockProposal {
       id: "block-7-extra-products",
       type: "extra_products",
       title: "Extra products",
-      order: 7,
+      order: 17,
       enabled: true,
       data: {
         pillBadge: "Extra products",
@@ -227,8 +327,8 @@ export function createDefaultProposal(): BlockProposal {
     {
       id: "block-8-next-steps",
       type: "next_steps",
-      title: "Text",
-      order: 8,
+      title: "Next Steps",
+      order: 18,
       enabled: true,
       data: {
         pillBadge: "Text",
@@ -265,8 +365,8 @@ export function createDefaultProposal(): BlockProposal {
     {
       id: "block-9-payment-schedule",
       type: "payment_schedule",
-      title: "9. Payment Schedule",
-      order: 9,
+      title: "Payment Schedule",
+      order: 19,
       enabled: true,
       data: {
         headline: "Transparent Payment Milestones",
@@ -276,8 +376,8 @@ export function createDefaultProposal(): BlockProposal {
     {
       id: "block-10-final-price",
       type: "final_price_summary",
-      title: "10. Final Price Summary",
-      order: 10,
+      title: "Final Price Summary",
+      order: 20,
       enabled: true,
       data: {
         headline: "Turnkey Investment Summary",
@@ -287,8 +387,8 @@ export function createDefaultProposal(): BlockProposal {
     {
       id: "block-11-acceptance",
       type: "acceptance",
-      title: "11. Acceptance & Next Steps",
-      order: 11,
+      title: "Acceptance & Next Steps",
+      order: 21,
       enabled: true,
       data: {
         headline: "Ready to Accept Your Proposal?",

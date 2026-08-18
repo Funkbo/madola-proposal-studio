@@ -18,12 +18,16 @@ export interface MediaAsset {
 const LOCAL_STORAGE_MEDIA_KEY = "madola_media_library";
 const BUCKET_NAME = "proposal-media";
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB application limit
+const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25MB application limit
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
   "image/svg+xml",
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-matroska",
 ];
 
 function getLocalMediaAssets(): MediaAsset[] {
@@ -140,14 +144,14 @@ export async function uploadMediaAsset(
   if (!ALLOWED_MIME_TYPES.includes(file.type)) {
     return {
       asset: null,
-      error: `Invalid file type "${file.type}". Allowed types: JPEG, PNG, WebP, SVG.`,
+      error: `Invalid file type "${file.type}". Allowed types: JPEG, PNG, WebP, SVG, MP4, WebM, MOV, MKV.`,
     };
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
     return {
       asset: null,
-      error: `File size exceeds the 10MB limit (File size: ${(file.size / (1024 * 1024)).toFixed(1)}MB).`,
+      error: `File size exceeds the 25MB limit (File size: ${(file.size / (1024 * 1024)).toFixed(1)}MB).`,
     };
   }
 
@@ -156,6 +160,8 @@ export async function uploadMediaAsset(
   const category = metadata?.category || "general";
   const name = metadata?.name || file.name;
   const alt = metadata?.alt || name;
+  const isVideo = file.type.startsWith("video/");
+  const assetType = isVideo ? "video" : "image";
 
   if (isConfigured) {
     try {
@@ -194,7 +200,7 @@ export async function uploadMediaAsset(
           public_url: publicUrl,
           mime_type: file.type,
           file_size: file.size,
-          type: "image",
+          type: assetType,
           category,
           alt,
         })
@@ -228,6 +234,24 @@ export async function uploadMediaAsset(
     const reader = new FileReader();
     reader.onload = () => {
       const rawDataUrl = reader.result as string;
+
+      if (isVideo) {
+        const fallbackAsset: MediaAsset = {
+          id: assetId,
+          name,
+          publicUrl: rawDataUrl,
+          mimeType: file.type,
+          fileSize: file.size,
+          type: "video",
+          category,
+          alt,
+          createdAt: new Date().toISOString(),
+        };
+        saveLocalMediaAsset(fallbackAsset);
+        resolve({ asset: fallbackAsset, error: null });
+        return;
+      }
+
       const img = new Image();
       img.onload = () => {
         let width = img.width;
@@ -397,7 +421,7 @@ export async function deleteMediaAsset(
 
 export async function resolveMediaUrl(reference: string): Promise<string> {
   if (!reference) return "";
-  if (reference.startsWith("http://") || reference.startsWith("https://") || reference.startsWith("data:image/")) {
+  if (reference.startsWith("http://") || reference.startsWith("https://") || reference.startsWith("data:image/") || reference.startsWith("data:video/")) {
     return reference;
   }
 

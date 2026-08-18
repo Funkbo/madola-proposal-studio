@@ -7,6 +7,11 @@ import {
   ExtractedSystemOption,
   NormalisedProposalData,
 } from "@/types/extraction";
+import {
+  FieldPatternConfig,
+  getFieldPatterns,
+  applyPatternsToText,
+} from "@/lib/fieldPatterns";
 
 /**
  * Deterministic, Generic OpenSolar PDF Text & Field Extractor
@@ -200,7 +205,7 @@ export function extractRawPdfTextStrings(pdfBuffer: Buffer): string {
   }
 }
 
-export async function parseOpenSolarPdfBuffer(pdfBuffer: Buffer): Promise<ExtractionResult> {
+export async function parseOpenSolarPdfBuffer(pdfBuffer: Buffer, patterns?: FieldPatternConfig[]): Promise<ExtractionResult> {
   let text = "";
   let extractedImages: string[] = [];
 
@@ -260,7 +265,7 @@ export async function parseOpenSolarPdfBuffer(pdfBuffer: Buffer): Promise<Extrac
     }
   }
 
-  const result = extractFromText(text, extractedImages);
+  const result = extractFromText(text, extractedImages, patterns);
 
   if (extractedImages.length > 0) {
     const heroImage = extractedImages[0];
@@ -276,328 +281,308 @@ export async function parseOpenSolarPdfBuffer(pdfBuffer: Buffer): Promise<Extrac
   return result;
 }
 
-export function extractFromText(rawText: string, extractedImages: string[] = []): ExtractionResult {
+export function extractFromText(
+  rawText: string,
+  extractedImages: string[] = [],
+  patterns: FieldPatternConfig[] = getFieldPatterns()
+): ExtractionResult {
   const normalizedText = rawText.replace(/\r\n/g, "\n").replace(/[ \t]+/g, " ");
 
-  // Helper matcher for regex fields
-  const matchField = <T>(
-    regex: RegExp,
-    transform: (match: string) => T,
-    unit?: string,
-    confidence: "high" | "medium" | "low" = "high"
-  ): ExtractionField<T> => {
-    const found = normalizedText.match(regex);
-    if (found && found[1] !== undefined) {
-      try {
-        const val = transform(found[1].trim());
-        if (val !== undefined && val !== null && val !== "" && !Number.isNaN(val)) {
-          return {
-            value: val,
-            unit,
-            source: "OpenSolar PDF",
-            confidence,
-            editable: true,
-          };
-        }
-      } catch (e) {
-        console.warn("Failed to transform extracted regex match", e);
-      }
-    }
-    return {
-      value: "NOT FOUND IN SOURCE" as unknown as T,
-      unit,
-      source: "OpenSolar PDF",
-      confidence: "low",
-      editable: true,
-      notes: "NOT FOUND IN SOURCE",
-    };
-  };
+  // User-configurable pattern results (Settings > PDF Field Mapping).
+  // Patterns run first; legacy fallback chains below cover tricky multi-label fields.
+  const patternResults = applyPatternsToText(normalizedText, patterns);
+
+  const P = <T>(key: string): ExtractionField<T> | undefined =>
+    patternResults.get(key) as ExtractionField<T> | undefined;
+
+  const notFoundField = <T>(unit?: string): ExtractionField<T> => ({
+    value: "NOT FOUND IN SOURCE" as unknown as T,
+    unit,
+    source: "OpenSolar PDF",
+    confidence: "low",
+    editable: true,
+    notes: "NOT FOUND IN SOURCE",
+  });
+
+  // Pattern result wins; otherwise legacy fallback; otherwise NOT FOUND.
+  const pick = <T>(key: string, fallback?: ExtractionField<T>, unit?: string): ExtractionField<T> =>
+    P<T>(key) || fallback || notFoundField<T>(unit);
 
   // 1. Customer & Sales Rep Details
-  const customerNameMatch =
-    normalizedText.match(/(?:Proposal for|Prepared for|Customer Name|Client Name|Customer|Client)[:\s]+([A-Za-z0-9 \t'-]{2,40})/i) ||
-    normalizedText.match(/(?:Hi|Dear)\s+([A-Za-z0-9 \t'-]{2,30})/i) ||
-    normalizedText.match(/Proposal for[ \t]+([A-Za-z0-9 \t'-]{2,40})/i);
-  const customerNameVal = customerNameMatch ? customerNameMatch[1].trim().split("\n")[0] : undefined;
+  const legacyCustomerName = ((): ExtractionField<string> | undefined => {
+    const m =
+      normalizedText.match(/(?:Proposal for|Prepared for|Customer Name|Client Name|Customer|Client)[:\s]+([A-Za-z0-9 \t'-]{2,40})/i) ||
+      normalizedText.match(/(?:Hi|Dear)\s+([A-Za-z0-9 \t'-]{2,30})/i) ||
+      normalizedText.match(/Proposal for[ \t]+([A-Za-z0-9 \t'-]{2,40})/i);
+    const val = m ? m[1].trim().split("\n")[0] : undefined;
+    return val ? { value: val, source: "OpenSolar PDF", confidence: "high" as const, editable: true } : undefined;
+  })();
+  const customerName = pick<string>("customerName", legacyCustomerName);
 
-  const customerName: ExtractionField<string> = customerNameVal
-    ? { value: customerNameVal, source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/(?:Proposal for|Prepared for|Customer|Client Name)[: \t]+([A-Za-z0-9 \t'-]{2,40})/i, (s) => s);
+  const legacyAddress = ((): ExtractionField<string> | undefined => {
+    const m =
+      normalizedText.match(/(?:Site Address|Property Address|Installation Address)[:\s]+([^\n]{5,80})/i) ||
+      normalizedText.match(/([0-9]{1,4}\s+[A-Za-z0-9\s,.-]+(?:Road|Street|Avenue|Lane|Close|Drive|Way|Court|Hill|Park|Place|House|Gardens)[A-Za-z0-9\s,.-]*[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})/i) ||
+      normalizedText.match(/(?:Address)[:\s]+([^\n]{5,80})/i);
+    const val = m ? m[1].trim().split("\n")[0] : undefined;
+    return val ? { value: val, source: "OpenSolar PDF", confidence: "high" as const, editable: true } : undefined;
+  })();
+  const address = pick<string>("address", legacyAddress);
 
-  const addressMatch =
-    normalizedText.match(/(?:Site Address|Property Address|Installation Address)[:\s]+([^\n]{5,80})/i) ||
-    normalizedText.match(/([0-9]{1,4}\s+[A-Za-z0-9\s,.-]+(?:Road|Street|Avenue|Lane|Close|Drive|Way|Court|Hill|Park|Place|House|Gardens)[A-Za-z0-9\s,.-]*[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})/i) ||
-    normalizedText.match(/(?:Address)[:\s]+([^\n]{5,80})/i);
-  const addressVal = addressMatch ? addressMatch[1].trim().split("\n")[0] : undefined;
-
-  const address: ExtractionField<string> = addressVal
-    ? { value: addressVal, source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/(?:Site Address|Property Address|Installation Address)[:\s]+([^\n]{5,80})/i, (s) => s);
-
-  const postcodeMatch = normalizedText.match(/([A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})/i);
-  const postcodeVal = postcodeMatch ? postcodeMatch[1].toUpperCase() : undefined;
-
-  const postcode: ExtractionField<string> = postcodeVal
-    ? { value: postcodeVal, source: "OpenSolar PDF", confidence: "high", editable: true }
-    : { value: "CF35 6NU", source: "OpenSolar PDF", confidence: "medium", editable: true };
-
-  const proposalReferenceMatch =
-    normalizedText.match(/(?:Quote\s*#?:?|Proposal\s*(?:ID|Ref|#)?:?|Reference|Ref\s*#?)[:\s]*([A-Z0-9-]{4,25})/i) ||
-    normalizedText.match(/Ref[:\s]*([A-Z0-9-]{4,25})/i);
-  const proposalReferenceVal = proposalReferenceMatch ? proposalReferenceMatch[1].trim() : undefined;
-
-  const proposalReference: ExtractionField<string> = proposalReferenceVal
-    ? { value: proposalReferenceVal, source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/(?:Quote #|Proposal ID|Reference|Ref)[:\s]+([A-Z0-9-]{4,25})/i, (s) => s);
-
-  const proposalDate = matchField(
-    /(?:Date|Proposal Date)[:\s]+([0-9]{1,2}[\/\s-][A-Za-z0-9]{3,9}[\/\s-][0-9]{2,4})/i,
-    (s) => s
+  const legacyPostcode = (() => {
+    const m = normalizedText.match(/([A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})/i);
+    return m ? m[1].toUpperCase() : undefined;
+  })();
+  const postcode = pick<string>(
+    "postcode",
+    legacyPostcode
+      ? { value: legacyPostcode, source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined
   );
 
-  const validityDate = matchField(
-    /(?:Valid until|Expiry Date)[:\s]+([^\n]{5,30})/i,
-    (s) => s
+  const legacyReference = (() => {
+    const m =
+      normalizedText.match(/(?:Quote\s*#?:?|Proposal\s*(?:ID|Ref|#)?:?|Reference|Ref\s*#?)[:\s]*([A-Z0-9-]{4,25})/i) ||
+      normalizedText.match(/Ref[:\s]*([A-Z0-9-]{4,25})/i);
+    return m ? m[1].trim() : undefined;
+  })();
+  const proposalReference = pick<string>(
+    "proposalReference",
+    legacyReference
+      ? { value: legacyReference, source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined
   );
 
-  const salespersonName = matchField(
-    /(?:Prepared by|Salesperson|Advisor|Representative)[:\s]+([A-Za-z\s'-]{2,30})/i,
-    (s) => s
-  );
-
-  const salespersonEmail = matchField(
-    /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
-    (s) => s.toLowerCase()
-  );
-
-  const salespersonPhone = matchField(
-    /(?:Phone|Tel|Mobile)[:\s]+([0-9\s+]{10,15})/i,
-    (s) => s.replace(/\s+/g, "")
-  );
+  const proposalDate = pick<string>("proposalDate");
+  const validityDate = pick<string>("validityDate");
+  const salespersonName = pick<string>("salespersonName");
+  const salespersonEmail = pick<string>("salespersonEmail");
+  const salespersonPhone = pick<string>("salespersonPhone");
 
   // 2. Solar System Specs
-  const panelsMatch =
-    normalizedText.match(/([0-9]{1,3})\s*(?:x|×|\*)\s*([0-9]{3})\s*W(?:att)?\s*(?:Panels|Modules)?\s*(?:\(([^)]+)\))?/i) ||
-    normalizedText.match(/([0-9]{1,3})\s*(?:Solar Panels|Panels|Modules)\s*(?:\(([^)]+)\))?/i);
-  const panelQtyVal = panelsMatch ? parseInt(panelsMatch[1], 10) : undefined;
-  const panelWattVal = panelsMatch && panelsMatch[2] && !isNaN(parseInt(panelsMatch[2], 10)) ? parseInt(panelsMatch[2], 10) : undefined;
-  const panelModelVal = panelsMatch && (panelsMatch[3] || panelsMatch[2]) ? (panelsMatch[3] || panelsMatch[2]).trim() : undefined;
+  const legacyPanels = (() => {
+    const m =
+      normalizedText.match(/([0-9]{1,3})\s*(?:x|×|\*)\s*([0-9]{3})\s*W(?:att)?\s*(?:Panels|Modules)?\s*(?:\(([^)]+)\))?/i) ||
+      normalizedText.match(/([0-9]{1,3})\s*(?:Solar Panels|Panels|Modules)\s*(?:\(([^)]+)\))?/i);
+    if (!m) return undefined;
+    const qty = m[1] ? parseInt(m[1], 10) : undefined;
+    const watt = m[2] && !isNaN(parseInt(m[2], 10)) ? parseInt(m[2], 10) : undefined;
+    const model = m[3] || m[2];
+    return { qty, watt, model: model ? model.trim() : undefined };
+  })();
 
-  const panelQuantity: ExtractionField<number> = panelQtyVal
-    ? { value: panelQtyVal, unit: "units", source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/([0-9]{1,3})\s*(?:Solar Panels|Panels|Modules)/i, (s) => parseInt(s, 10), "units");
-
-  const panelWattage: ExtractionField<number> = panelWattVal
-    ? { value: panelWattVal, unit: "W", source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/([0-9]{3})\s*W(?:att)?/i, (s) => parseInt(s, 10), "W");
-
-  const panelModel: ExtractionField<string> = panelModelVal
-    ? { value: panelModelVal, source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/(LR7-[A-Za-z0-9-]+|LR5-[A-Za-z0-9-]+|JKM[A-Za-z0-9-]+|JAM[A-Za-z0-9-]+|Aiko[A-Za-z0-9-]+|RECOM[A-Za-z0-9-]+|[A-Za-z0-9-]{4,25}\s*4[0-9]{2}W)/i, (s) => s);
-
-  const panelManufacturer = matchField(
-    /(LONGi|JA Solar|Jinko|Trina|RECOM|Canadian Solar|Qcells|Aiko|Sunpower|REC|Hyundai|Perlight)/i,
-    (s) => s
+  const panelQuantity = pick<number>(
+    "panelQuantity",
+    legacyPanels?.qty !== undefined
+      ? { value: legacyPanels.qty, unit: "units", source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined,
+    "units"
   );
 
-  const systemSizeMatch =
-    normalizedText.match(/(?:System Size|System Capacity|System|Capacity)[:\s]*([0-9]{1,2}\.[0-9]{1,3})\s*kWp?/i) ||
-    normalizedText.match(/([0-9]{1,2}\.[0-9]{1,3})\s*kWp\b/i) ||
-    normalizedText.match(/([0-9]{1,2}\.[0-9]{1,3})\s*kW\b/i);
-  const systemSizeVal = systemSizeMatch ? parseFloat(systemSizeMatch[1]) : undefined;
+  const panelWattage = pick<number>(
+    "panelWattage",
+    legacyPanels?.watt !== undefined
+      ? { value: legacyPanels.watt, unit: "W", source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined,
+    "W"
+  );
 
-  const systemSizeKwp: ExtractionField<number> = systemSizeVal
-    ? { value: systemSizeVal, unit: "kWp", source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/([0-9]{1,2}\.[0-9]{1,3})\s*kW/i, (s) => parseFloat(s), "kWp");
+  const panelModel = pick<string>(
+    "panelModel",
+    legacyPanels?.model
+      ? { value: legacyPanels.model, source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined
+  );
 
-  const annualGenMatch =
-    normalizedText.match(/(?:Annual Generation|Annual Output|Expected Generation|Generation)[:\s]*([0-9,]{3,6})\s*kWh/i) ||
-    normalizedText.match(/([0-9,]{3,6})\s*kWh per year/i);
-  const annualGenVal = annualGenMatch ? parseInt(annualGenMatch[1].replace(/,/g, ""), 10) : undefined;
+  const panelManufacturer = pick<string>("panelManufacturer");
 
-  const annualGenerationKwh: ExtractionField<number> = annualGenVal
-    ? { value: annualGenVal, unit: "kWh", source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/([0-9,]{3,6})\s*kWh/i, (s) => parseInt(s.replace(/,/g, ""), 10), "kWh");
+  const legacySystemSize = (() => {
+    const m =
+      normalizedText.match(/(?:System Size|System Capacity|System|Capacity)[:\s]*([0-9]{1,2}\.[0-9]{1,3})\s*kWp?/i) ||
+      normalizedText.match(/([0-9]{1,2}\.[0-9]{1,3})\s*kWp\b/i) ||
+      normalizedText.match(/([0-9]{1,2}\.[0-9]{1,3})\s*kW\b/i);
+    const val = m ? parseFloat(m[1]) : undefined;
+    return val !== undefined && !isNaN(val) ? val : undefined;
+  })();
+  const systemSizeKwp = pick<number>(
+    "systemSizeKwp",
+    legacySystemSize !== undefined
+      ? { value: legacySystemSize, unit: "kWp", source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined,
+    "kWp"
+  );
+
+  const legacyAnnualGen = (() => {
+    const m =
+      normalizedText.match(/(?:Annual Generation|Annual Output|Expected Generation|Generation)[:\s]*([0-9,]{3,6})\s*kWh/i) ||
+      normalizedText.match(/([0-9,]{3,6})\s*kWh per year/i);
+    const val = m ? parseInt(m[1].replace(/,/g, ""), 10) : undefined;
+    return val !== undefined && !isNaN(val) ? val : undefined;
+  })();
+  const annualGenerationKwh = pick<number>(
+    "annualGenerationKwh",
+    legacyAnnualGen !== undefined
+      ? { value: legacyAnnualGen, unit: "kWh", source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined,
+    "kWh"
+  );
 
   // 3. Inverter Specs
-  const invMatch =
-    normalizedText.match(/([0-9.]+) kW of Inverter Power\s+([^\n]+)\n\s*1 x ([A-Za-z0-9.-]+)/i) ||
-    normalizedText.match(/(?:Inverter|Hybrid Inverter)[:\s]*([A-Za-z0-9 .-]+)/i);
-  const inverterCapacityKw: ExtractionField<number> = invMatch && !isNaN(parseFloat(invMatch[1]))
-    ? { value: parseFloat(invMatch[1]), unit: "kW", source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/([0-9.]+) kW of Inverter Power/i, (s) => parseFloat(s), "kW");
+  const legacyInv = (() => {
+    const m =
+      normalizedText.match(/([0-9.]+) kW of Inverter Power\s+([^\n]+)\n\s*1 x ([A-Za-z0-9.-]+)/i) ||
+      normalizedText.match(/(?:Inverter|Hybrid Inverter)[:\s]*([A-Za-z0-9 .-]+)/i);
+    if (!m) return undefined;
+    const cap = m[1] && !isNaN(parseFloat(m[1])) ? parseFloat(m[1]) : undefined;
+    const mfr = (m[2] || m[1])?.trim();
+    const model = m[3]?.trim();
+    return { cap, mfr, model };
+  })();
 
-  const inverterManufacturer: ExtractionField<string> = invMatch
-    ? { value: (invMatch[2] || invMatch[1]).trim(), source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/(Tesla|Duracell Energy|Hanchu ESS|SolaX|SigenEnergy|Fox ESS|Solis|Growatt|Huawei|GivEnergy|SunSynk|Victron|Enphase|SolarEdge)/i, (s) => s);
-
-  const inverterModel: ExtractionField<string> = invMatch && invMatch[3]
-    ? { value: invMatch[3].trim(), source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/(Tesla Powerwall 3\.0|Tesla Powerwall|Giv-HY[A-Za-z0-9.-]+|PD-DH1P-[A-Za-z0-9-]+|HESS-HY-S-[A-Za-z0-9.]+|X1-Hybrid-[A-Za-z0-9.]+|Sigen-[A-Za-z0-9.-]+|[A-Za-z0-9-]{4,25}\s*Inverter)/i, (s) => s);
-
-  const inverterWarranty = matchField(
-    /(?:Inverter Product Warranty|Inverter Warranty)[:\s]*([0-9]{1,2}\s*Years?)/i,
-    (s) => s
+  const inverterCapacityKw = pick<number>(
+    "inverterCapacityKw",
+    legacyInv?.cap !== undefined
+      ? { value: legacyInv.cap, unit: "kW", source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined,
+    "kW"
   );
+
+  const inverterManufacturer = pick<string>(
+    "inverterManufacturer",
+    legacyInv?.mfr
+      ? { value: legacyInv.mfr, source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined
+  );
+
+  const inverterModel = pick<string>(
+    "inverterModel",
+    legacyInv?.model
+      ? { value: legacyInv.model, source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined
+  );
+
+  const inverterWarranty = pick<string>("inverterWarranty");
 
   // 4. Battery Specs
-  const batMatch =
-    normalizedText.match(/([0-9.]+) kWh of Usable Capacity\s+([^\n]+)\n\s*1 x ([A-Za-z0-9.-]+)/i) ||
-    normalizedText.match(/(?:Battery|Battery Storage|Storage)[:\s]*([A-Za-z0-9 .-]+)/i);
-  const batteryCapacityKwh: ExtractionField<number> = batMatch && !isNaN(parseFloat(batMatch[1]))
-    ? { value: parseFloat(batMatch[1]), unit: "kWh", source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/([0-9.]+) kWh of Usable Capacity/i, (s) => parseFloat(s), "kWh");
+  const legacyBat = (() => {
+    const m =
+      normalizedText.match(/([0-9.]+) kWh of Usable Capacity\s+([^\n]+)\n\s*1 x ([A-Za-z0-9.-]+)/i) ||
+      normalizedText.match(/(?:Battery|Battery Storage|Storage)[:\s]*([A-Za-z0-9 .-]+)/i);
+    if (!m) return undefined;
+    const cap = m[1] && !isNaN(parseFloat(m[1])) ? parseFloat(m[1]) : undefined;
+    const mfr = (m[2] || m[1])?.trim();
+    const model = m[3]?.trim();
+    return { cap, mfr, model };
+  })();
 
-  const batteryManufacturer: ExtractionField<string> = batMatch
-    ? { value: (batMatch[2] || batMatch[1]).trim(), source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/(Tesla|Duracell|Hanchu ESS|SolaX|SigenEnergy|Fox ESS|GivEnergy|Pylontech|Enphase|Growatt)/i, (s) => s);
-
-  const batteryModel: ExtractionField<string> = batMatch && batMatch[3]
-    ? { value: batMatch[3].trim(), source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/(Tesla Powerwall 3|Giv-Bat[A-Za-z0-9.-]+|Dura16 LV Battery|HOME-ESS-LV-[A-Za-z0-9.]+|Triple Power|Sigen-BAT|Powerwall)/i, (s) => s);
-
-  const batteryWarranty = matchField(
-    /(?:Battery Product Warranty|Battery Warranty)[:\s]*([0-9]{1,2}\s*Years?)/i,
-    (s) => s
+  const batteryCapacityKwh = pick<number>(
+    "batteryCapacityKwh",
+    legacyBat?.cap !== undefined
+      ? { value: legacyBat.cap, unit: "kWh", source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined,
+    "kWh"
   );
+
+  const batteryManufacturer = pick<string>(
+    "batteryManufacturer",
+    legacyBat?.mfr
+      ? { value: legacyBat.mfr, source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined
+  );
+
+  const batteryModel = pick<string>(
+    "batteryModel",
+    legacyBat?.model
+      ? { value: legacyBat.model, source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined
+  );
+
+  const batteryWarranty = pick<string>("batteryWarranty");
 
   // 5. Technical Metrics
-  const roofGroup = matchField(/Group\s*([0-9]+(?:\:[^\n]+)?)/i, (s) => `Group ${s}`);
-  const roofOrientation = matchField(/Orientation:\s*([0-9]+(?:\s*°)?)/i, (s) => `${s}°`, "°");
-  const roofPitch = matchField(/Tilt:\s*([0-9]+(?:\s*°)?)/i, (s) => `${s}°`, "°");
-  const shadeFactor = matchField(/Shade Factor \(SF\)\s*([0-1]\.[0-9]{1,4})/i, (s) => parseFloat(s));
-  const kwhPerKwp = matchField(/kWh\/kWp \(Kk\)[^\n]*\s*([0-9]{3,4})/i, (s) => parseFloat(s), "kWh/kWp");
+  const roofGroup = pick<string>("roofGroup");
+  const roofOrientation = pick<string>("roofOrientation", undefined, "°");
+  const roofPitch = pick<string>("roofPitch", undefined, "°");
+  const shadeFactor = pick<number>("shadeFactor");
+  const kwhPerKwp = pick<number>("kwhPerKwp", undefined, "kWh/kWp");
 
   // 6. Performance Metrics
-  const annualConsumptionKwh = matchField(
-    /Assumed annual electricity consumption, kWh\s*([0-9,]{3,6})/i,
-    (s) => parseInt(s.replace(/,/g, ""), 10),
-    "kWh"
-  );
-
-  const selfConsumptionPercent = matchField(
-    /Expected solar PV self-consumption \(PV Only\)\s*[0-9,]+\s*kWh[\s\S]*?([0-9.]+)%/i,
-    (s) => parseFloat(s),
-    "%"
-  );
-
-  const selfSufficiencyPercent = matchField(
-    /Grid electricity independence \/ Self-su ciency \(PV\s*Only\)\s*([0-9.]+)/i,
-    (s) => parseFloat(s),
-    "%"
-  );
-
-  const eessSelfConsumptionKwh = matchField(
-    /Expected solar PV self-consumption \(with EESS\)\s*([0-9,]+)/i,
-    (s) => parseInt(s.replace(/,/g, ""), 10),
-    "kWh"
-  );
-
-  const eessSelfSufficiencyPercent = matchField(
-    /Grid electricity independence \/ Self-su ciency \(with\s*EESS\)\s*([0-9.]+)/i,
-    (s) => parseFloat(s),
-    "%"
-  );
-
-  const annualBatteryDischargeKwh = matchField(
-    /Total energy discharged per annum\s*([0-9,]+)/i,
-    (s) => parseInt(s.replace(/,/g, ""), 10),
-    "kWh"
-  );
-
-  const directToHomeKwh = matchField(/Direct to home\s*([0-9,]+)/i, (s) => parseInt(s.replace(/,/g, ""), 10), "kWh");
-  const batteryToHomeKwh = matchField(/Battery to home\s*([0-9,]+)/i, (s) => parseInt(s.replace(/,/g, ""), 10), "kWh");
-  const exportToGridKwh = matchField(/Export to grid\s*([0-9,]+)/i, (s) => parseInt(s.replace(/,/g, ""), 10), "kWh");
+  const annualConsumptionKwh = pick<number>("annualConsumptionKwh", undefined, "kWh");
+  const selfConsumptionPercent = pick<number>("selfConsumptionPercent", undefined, "%");
+  const selfSufficiencyPercent = pick<number>("selfSufficiencyPercent", undefined, "%");
+  const eessSelfConsumptionKwh = pick<number>("eessSelfConsumptionKwh", undefined, "kWh");
+  const eessSelfSufficiencyPercent = pick<number>("eessSelfSufficiencyPercent", undefined, "%");
+  const annualBatteryDischargeKwh = pick<number>("annualBatteryDischargeKwh", undefined, "kWh");
+  const directToHomeKwh = pick<number>("directToHomeKwh", undefined, "kWh");
+  const batteryToHomeKwh = pick<number>("batteryToHomeKwh", undefined, "kWh");
+  const exportToGridKwh = pick<number>("exportToGridKwh", undefined, "kWh");
 
   // 7. Financial Metrics
-  const systemPriceMatch =
-    normalizedText.match(/(?:Total System Price|System Price|Total Price|Total Investment|System Cost|Total Payable|Total)[:\s]*(?:including VAT)?[:\s]*£?\s*([0-9,]{4,7}(?:\.[0-9]{2})?)/i) ||
-    normalizedText.match(/£\s*([0-9,]{4,7}(?:\.[0-9]{2})?)\s*(?:Total System Price|Total Price|System Price)/i);
-  const systemPriceVal = systemPriceMatch ? parseFloat(systemPriceMatch[1].replace(/,/g, "")) : undefined;
-
-  const systemPricePounds: ExtractionField<number> = systemPriceVal
-    ? { value: systemPriceVal, unit: "£", source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/(?:Total System Price|System Price|Total Price|Total Investment|Total)[:\s]*£?\s*([0-9,]+(?:\.[0-9]{2})?)/i, (s) => parseFloat(s.replace(/,/g, "")), "£");
-
-  const firstYearSavingsMatch =
-    normalizedText.match(/(?:Estimated Annual Energy Bill Savings|First Year Savings|Year 1 Savings|Annual Savings|Estimated Savings)[:\s]*£?\s*([0-9,]{3,6}(?:\.[0-9]{2})?)/i) ||
-    normalizedText.match(/£\s*([0-9,]{3,6})\s*(?:\n|\s)*Estimated Annual(?:\n|\s)*Energy Bill Savings/i) ||
-    normalizedText.match(/Estimated Annual(?:\n|\s)*Energy Bill Savings(?:\n|\s)*£?\s*([0-9,]{3,6})/i);
-  const firstYearSavingsVal = firstYearSavingsMatch
-    ? parseFloat((firstYearSavingsMatch[1] || firstYearSavingsMatch[2]).replace(/,/g, ""))
-    : undefined;
-
-  const firstYearSavingsPounds: ExtractionField<number> = firstYearSavingsVal
-    ? { value: firstYearSavingsVal, unit: "£", source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/(?:Estimated Annual Energy Bill Savings|First Year Savings|Annual Savings)[:\s]*£?\s*([0-9,]+)/i, (s) => parseFloat(s.replace(/,/g, "")), "£");
-
-  const netSystemCostPounds = matchField(
-    /(?:Net System Cost|Net Cost)\s*-?\s*£?\s*([0-9,]+(?:\.[0-9]{2})?)/i,
-    (s) => parseFloat(s.replace(/,/g, "")),
+  const legacySystemPrice = (() => {
+    const m =
+      normalizedText.match(/(?:Total System Price|System Price|Total Price|Total Investment|System Cost|Total Payable|Total)[:\s]*(?:including VAT)?[:\s]*£?\s*([0-9,]{4,7}(?:\.[0-9]{2})?)/i) ||
+      normalizedText.match(/£\s*([0-9,]{4,7}(?:\.[0-9]{2})?)\s*(?:Total System Price|Total Price|System Price)/i);
+    const val = m ? parseFloat(m[1].replace(/,/g, "")) : undefined;
+    return val !== undefined && !isNaN(val) ? val : undefined;
+  })();
+  const systemPricePounds = pick<number>(
+    "systemPricePounds",
+    legacySystemPrice !== undefined
+      ? { value: legacySystemPrice, unit: "£", source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined,
     "£"
   );
 
-  const netSavingsPounds = matchField(
-    /(?:Estimated Net Savings|Net Savings|Lifetime Savings)\s*£?\s*([0-9,]+(?:\.[0-9]{2})?)/i,
-    (s) => parseFloat(s.replace(/,/g, "")),
+  const legacyFirstYearSavings = (() => {
+    const m =
+      normalizedText.match(/(?:Estimated Annual Energy Bill Savings|First Year Savings|Year 1 Savings|Annual Savings|Estimated Savings)[:\s]*£?\s*([0-9,]{3,6}(?:\.[0-9]{2})?)/i) ||
+      normalizedText.match(/£\s*([0-9,]{3,6})\s*(?:\n|\s)*Estimated Annual(?:\n|\s)*Energy Bill Savings/i) ||
+      normalizedText.match(/Estimated Annual(?:\n|\s)*Energy Bill Savings(?:\n|\s)*£?\s*([0-9,]{3,6})/i);
+    const val = m ? parseFloat((m[1] || m[2] || "").replace(/,/g, "")) : undefined;
+    return val !== undefined && !isNaN(val) ? val : undefined;
+  })();
+  const firstYearSavingsPounds = pick<number>(
+    "firstYearSavingsPounds",
+    legacyFirstYearSavings !== undefined
+      ? { value: legacyFirstYearSavings, unit: "£", source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined,
     "£"
   );
 
-  const paybackYears = matchField(
-    /(?:Payback|Payback Period)[:\s]*([0-9]{1,2}(?:\.[0-9])?)\s*years?/i,
-    (s) => parseInt(s, 10),
-    "Years"
-  );
+  const netSystemCostPounds = pick<number>("netSystemCostPounds", undefined, "£");
+  const netSavingsPounds = pick<number>("netSavingsPounds", undefined, "£");
+  const paybackYears = pick<number>("breakEvenYear", undefined, "Years");
 
-  const npvMatch =
-    normalizedText.match(/(?:Net Present Value|NPV|25 Year Savings)[:\s]*£?\s*([0-9,]{4,7}(?:\.[0-9]{2})?)/i) ||
-    normalizedText.match(/£\s*([0-9,]{4,7})\s+(?:Net Present Value|NPV)/i);
-  const npvVal = npvMatch ? parseFloat(npvMatch[1].replace(/,/g, "")) : undefined;
-
-  const npvPounds: ExtractionField<number> = npvVal
-    ? { value: npvVal, unit: "£", source: "OpenSolar PDF", confidence: "high", editable: true }
-    : matchField(/(?:Net Present Value|NPV)[:\s]*£?\s*([0-9,]+)/i, (s) => parseFloat(s.replace(/,/g, "")), "£");
-
-  const roiPercent = matchField(
-    /([0-9.]+)%\s+Total Return on\s+Investment/i,
-    (s) => parseFloat(s),
-    "%"
-  );
-
-  const roiRatePercent = matchField(
-    /([0-9.]+)%\s+Rate of Return on\s+Investment/i,
-    (s) => parseFloat(s),
-    "%"
-  );
-
-  const inflationRatePercent = matchField(
-    /considering a ([0-9.]+)% increase in energy cost/i,
-    (s) => parseFloat(s),
-    "%"
-  );
-
-  const discountRatePercent = matchField(
-    /discount rate of ([0-9.]+)%/i,
-    (s) => parseFloat(s),
-    "%"
-  );
-
-  const vatPounds = matchField(
-    /VAT\s*£?\s*([0-9,.]+)/i,
-    (s) => parseFloat(s.replace(/,/g, "")),
+  const legacyNpv = (() => {
+    const m =
+      normalizedText.match(/(?:Net Present Value|NPV|25 Year Savings)[:\s]*£?\s*([0-9,]{4,7}(?:\.[0-9]{2})?)/i) ||
+      normalizedText.match(/£\s*([0-9,]{4,7})\s+(?:Net Present Value|NPV)/i);
+    const val = m ? parseFloat(m[1].replace(/,/g, "")) : undefined;
+    return val !== undefined && !isNaN(val) ? val : undefined;
+  })();
+  const npvPounds = pick<number>(
+    "npvPounds",
+    legacyNpv !== undefined
+      ? { value: legacyNpv, unit: "£", source: "OpenSolar PDF", confidence: "high", editable: true }
+      : undefined,
     "£"
   );
 
+  const roiPercent = pick<number>("roiPercent", undefined, "%");
+  const roiRatePercent = pick<number>("roiRatePercent", undefined, "%");
+  const inflationRatePercent = pick<number>("inflationRatePercent", undefined, "%");
+  const discountRatePercent = pick<number>("discountRatePercent", undefined, "%");
+  const vatPounds = pick<number>("vatPounds", undefined, "£");
   const totalPricePounds = systemPricePounds;
-  const gridSavingsPounds = matchField(/Grid Savings\s*£?\s*([0-9,]+)/i, (s) => parseFloat(s.replace(/,/g, "")), "£");
-  const exportIncomePounds = matchField(/Export Credit\s*£?\s*([0-9,]+)/i, (s) => parseFloat(s.replace(/,/g, "")), "£");
-  const annualBillBeforePounds = matchField(/Utility Bill\s*before new system\s*£?\s*([0-9,]+)/i, (s) => parseFloat(s.replace(/,/g, "")), "£");
-  const annualBillAfterPounds = matchField(/Utility Bill\s*after new system\s*£?\s*([0-9,]+)/i, (s) => parseFloat(s.replace(/,/g, "")), "£");
+  const gridSavingsPounds = pick<number>("gridSavingsPounds", undefined, "£");
+  const exportIncomePounds = pick<number>("exportIncomePounds", undefined, "£");
+  const annualBillBeforePounds = pick<number>("annualBillBeforePounds", undefined, "£");
+  const annualBillAfterPounds = pick<number>("annualBillAfterPounds", undefined, "£");
   const breakEvenYear = paybackYears;
-  const lifetime25YearSavingsPounds = matchField(/Lifetime Bill Savings\s*£?\s*([0-9,]+)/i, (s) => parseFloat(s.replace(/,/g, "")), "£");
+  const lifetime25YearSavingsPounds = pick<number>("lifetime25YearSavingsPounds", undefined, "£");
 
   // 8. Payment Specs
-  const depositPercent = matchField(/deposit cannot be more than ([0-9]{1,2})%/i, (s) => parseFloat(s), "%");
+  const depositPercent = pick<number>("depositPercent", undefined, "%");
 
   // 9. 12 Monthly Table Rows Extraction
   const monthlyData: ExtractedMonthlyRow[] = [];
