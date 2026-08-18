@@ -268,8 +268,11 @@ export async function parseOpenSolarPdfBuffer(pdfBuffer: Buffer, patterns?: Fiel
   const result = extractFromText(text, extractedImages, patterns);
 
   if (extractedImages.length > 0) {
+    // Images are sorted by size descending; the largest embedded raster in an
+    // OpenSolar PDF is the high-res aerial roof layout render, so both the
+    // hero image and the panel layout diagram come from the same source.
     const heroImage = extractedImages[0];
-    const roofImage = extractedImages.length > 1 ? extractedImages[1] : extractedImages[0];
+    const roofImage = extractedImages[0];
     result.heroImage = heroImage;
     result.roofLayoutImage = roofImage;
     result.allExtractedImages = extractedImages;

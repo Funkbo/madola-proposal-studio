@@ -110,12 +110,44 @@ export default function NewProposalPage() {
         return;
       }
 
-      // 3. Send ONLY the extracted text (~few KB) to server action (bypasses Vercel 4.5MB body limit)
+      // 3. Upload the PDF buffer to company-isolated storage so the server
+      // action can extract embedded images (roof layout diagram etc.) from it.
+      // If upload fails, fall back to text-only extraction (no images).
+      setUploadStep("Uploading PDF to secure storage...");
+      let storagePath = "";
+      try {
+        const supabase = await getSupabaseClient();
+        const { data: authUser } = await supabase.auth.getUser();
+        let companyId = "";
+        if (authUser?.user?.id) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("company_id")
+            .eq("id", authUser.user.id)
+            .maybeSingle();
+          companyId = profile?.company_id || "";
+        }
+        const safeName = file.name.replace(/[^a-zA-Z0-9_.-]/g, "_");
+        const ts = Date.now();
+        storagePath = companyId ? `${companyId}/${ts}_${safeName}` : `browser/${ts}_${safeName}`;
+        const { error: upErr } = await supabase.storage
+          .from("proposal-pdfs")
+          .upload(storagePath, file, { contentType: "application/pdf", upsert: true });
+        if (upErr) {
+          console.warn("PDF storage upload notice, continuing with text-only extraction:", upErr.message);
+          storagePath = "";
+        }
+      } catch (upErr) {
+        console.warn("PDF storage upload exception, continuing with text-only extraction:", upErr);
+        storagePath = "";
+      }
+
+      // 4. Send ONLY the extracted text (~few KB) to server action (bypasses Vercel 4.5MB body limit)
       setUploadStep("Analysing extracted proposal data...");
       const { getFieldPatterns } = await import("@/lib/fieldPatterns");
       const res = await processStoredOpenSolarPdfAction({
         bucket: "proposal-pdfs",
-        path: `browser/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9_.-]/g, "_")}`,
+        path: storagePath || `browser/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9_.-]/g, "_")}`,
         fileName: file.name,
         fileSize: file.size,
         mimeType: file.type || "application/pdf",

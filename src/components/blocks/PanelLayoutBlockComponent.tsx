@@ -20,7 +20,7 @@ export function PanelLayoutBlockComponent({ block, proposal }: PanelLayoutBlockC
   const annualGenerationKwh = Math.round(parseFloat(systemSizeKw) * 912) || 4927;
 
   const DEFAULT_LAYOUT_IMAGE = "https://images.unsplash.com/photo-1508873696983-2df515122519?auto=format&fit=crop&w=1200&q=80";
-  const initialImage = (proposal as any)?.layoutImage || block.data?.layoutImage;
+  const initialImage = proposal.layoutImage || block.data?.layoutImage;
 
   const [imgSrc, setImgSrc] = React.useState<string>(
     typeof initialImage === "string" && initialImage.length > 50 ? initialImage : DEFAULT_LAYOUT_IMAGE

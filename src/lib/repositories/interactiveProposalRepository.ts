@@ -341,7 +341,7 @@ export function convertExtractionToInteractiveProposal(
   }
 
   const extractedHeroImage = extraction.heroImage || extraction.allExtractedImages?.[0];
-  const extractedLayoutImage = extraction.roofLayoutImage || (extraction.allExtractedImages && extraction.allExtractedImages.length > 1 ? extraction.allExtractedImages[1] : extraction.allExtractedImages?.[0]);
+  const extractedLayoutImage = extraction.roofLayoutImage || extraction.allExtractedImages?.[0];
 
   return {
     id: `prop-${token.substring(0, 8)}`,
@@ -561,13 +561,15 @@ export async function saveInteractiveProposal(proposal: FullInteractiveProposalD
         .maybeSingle();
 
       if (existingProposal?.id) {
-        // Update status and public token
+        // Update status, public token and images
         await supabase
           .from("proposals")
           .update({
             status: proposal.status,
             public_token: proposal.publicToken,
             published_at: proposal.publishedAt,
+            hero_image_url: proposal.heroImage || null,
+            layout_image_url: proposal.layoutImage || null,
             updated_at: new Date().toISOString(),
           })
           .eq("id", existingProposal.id);
@@ -583,6 +585,8 @@ export async function saveInteractiveProposal(proposal: FullInteractiveProposalD
             status: proposal.status,
             public_token: proposal.publicToken,
             published_at: proposal.publishedAt,
+            hero_image_url: proposal.heroImage || null,
+            layout_image_url: proposal.layoutImage || null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
@@ -741,6 +745,8 @@ export async function getInteractiveProposal(tokenOrSlug: string): Promise<FullI
           publicToken: tokenOrSlug,
           status: prop.status || "published",
           publishedAt: prop.publishedAt,
+          heroImage: prop.heroImage || DEFAULT_MASTER_PROPOSAL.heroImage,
+          layoutImage: prop.layoutImage || DEFAULT_MASTER_PROPOSAL.layoutImage,
           customer: {
             name: prop.customer?.name || DEFAULT_MASTER_PROPOSAL.customer.name,
             email: prop.customer?.email || DEFAULT_MASTER_PROPOSAL.customer.email,
@@ -763,7 +769,7 @@ export async function getInteractiveProposal(tokenOrSlug: string): Promise<FullI
       const { data: propRow } = await supabase
         .from("proposals")
         .select(`
-          id, reference, status, public_token, published_at,
+          id, reference, status, public_token, published_at, hero_image_url, layout_image_url,
           customer:customers(first_name, last_name, email, phone, address_line_1, postcode),
           solar_system:solar_systems(system_size_kwp, annual_generation_kwh, panel_count, panel_wattage, panel_manufacturer, panel_model, inverter_manufacturer, inverter_model, battery_manufacturer, battery_model, battery_capacity_kwh),
           financial:financials(system_price)
@@ -784,6 +790,8 @@ export async function getInteractiveProposal(tokenOrSlug: string): Promise<FullI
           publicToken: tokenOrSlug,
           status: (propRow.status as any) || "published",
           publishedAt: propRow.published_at || new Date().toISOString(),
+          heroImage: propRow.hero_image_url || DEFAULT_MASTER_PROPOSAL.heroImage,
+          layoutImage: propRow.layout_image_url || DEFAULT_MASTER_PROPOSAL.layoutImage,
           customer: {
             name: cust ? `${cust.first_name || ""} ${cust.last_name || ""}`.trim() : DEFAULT_MASTER_PROPOSAL.customer.name,
             email: cust?.email || DEFAULT_MASTER_PROPOSAL.customer.email,

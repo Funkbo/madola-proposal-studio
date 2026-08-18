@@ -84,6 +84,15 @@ export function CustomerBlockProposalView({
               : templateBlocks;
 
           if (proposalBlocks && proposalBlocks.length > 0) {
+            const rpcLayoutImage =
+              typeof res.proposal.layoutImage === "string" && res.proposal.layoutImage.length > 50
+                ? res.proposal.layoutImage
+                : undefined;
+            const rpcHeroImage =
+              typeof res.proposal.heroImage === "string" && res.proposal.heroImage.length > 50
+                ? res.proposal.heroImage
+                : undefined;
+
             setCurrentProposal((prev) => ({
               ...prev,
               reference: res.proposal.reference || prev.reference,
@@ -93,7 +102,13 @@ export function CustomerBlockProposalView({
                 name: res.proposal.customer?.name || prev.customer.name,
                 email: res.proposal.customer?.email || prev.customer.email,
               },
-              blocks: proposalBlocks,
+              heroImage: rpcHeroImage || prev.heroImage,
+              layoutImage: rpcLayoutImage || prev.layoutImage,
+              blocks: proposalBlocks.map((b: any) =>
+                b.type === "panel_layout" && rpcLayoutImage && !b.data?.layoutImage
+                  ? { ...b, data: { ...b.data, layoutImage: rpcLayoutImage } }
+                  : b
+              ),
               paymentSchedule: res.proposal.paymentSchedule || prev.paymentSchedule,
             }));
           }

@@ -70,6 +70,8 @@ export interface BlockProposal {
   batteryCapacity: number;
   inverterRating: number;
   basePrice: number;
+  heroImage?: string;
+  layoutImage?: string;
   extraProducts: ExtraProduct[];
   evCharger?: ExtraProduct & { selected: boolean };
   paymentSchedule: PaymentMilestone[];
