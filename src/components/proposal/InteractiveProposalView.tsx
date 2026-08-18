@@ -43,6 +43,7 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
   const branding = useCompanyBranding();
   const [logoError, setLogoError] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [customWhyChooseUs, setCustomWhyChooseUs] = useState<any>(null);
 
   // Dynamic Template Customizations Synchronization via useEffect (prevents SSR hydration mismatch)
   const [proposal, setProposal] = useState<FullInteractiveProposalData>(rawProposal);
@@ -54,14 +55,16 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
       let cover: any = null;
       let panelLayout: any = null;
       let ourWork: any = null;
+      let whyChooseUs: any = null;
 
       if (cache?.blocks) {
         cover = cache.blocks.find((b: any) => b.type === "cover");
         panelLayout = cache.blocks.find((b: any) => b.type === "panel_layout");
         ourWork = cache.blocks.find((b: any) => b.type === "our_work");
+        whyChooseUs = cache.blocks.find((b: any) => b.type === "why_choose_us");
       }
 
-      if (!cover && !panelLayout && !ourWork) {
+      if (!cover && !panelLayout && !ourWork && !whyChooseUs) {
         const keys = [
           "madola_template_template-madola-standard",
           "madola_saved_blocks_proposal-default-1",
@@ -76,6 +79,7 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
               if (!cover) cover = blocks.find((b: any) => b.type === "cover");
               if (!panelLayout) panelLayout = blocks.find((b: any) => b.type === "panel_layout");
               if (!ourWork) ourWork = blocks.find((b: any) => b.type === "our_work");
+              if (!whyChooseUs) whyChooseUs = blocks.find((b: any) => b.type === "why_choose_us");
             }
           }
         }
@@ -85,6 +89,8 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
       const customLayout = panelLayout?.data?.layoutImage;
       const customPreparedBy = cover?.data?.preparedBy;
       const customGallery = ourWork?.data?.images || (ourWork?.data?.mainImage ? [ourWork.data.mainImage.url, ...(ourWork.data.supportingImages?.map((s: any) => s.url) || [])] : null);
+      const customWhyChooseUs = whyChooseUs?.data;
+      setCustomWhyChooseUs(customWhyChooseUs);
 
       const isValidImg = (img?: string) => typeof img === "string" && img.length > 50;
 
@@ -476,123 +482,111 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
 
         {/* ========================================================================= */}
         {/* ========================================================================= */}
-        {/* SECTION 2 — WHY CHOOSE MADOLA? */}
+        {/* SECTION 2 — WHY CHOOSE MADOLA? (Dynamic from template) */}
         {/* ========================================================================= */}
-        <section id="section-why-us" className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-lg space-y-6 text-slate-900 font-sans antialiased">
-          {/* Top Header Row */}
-          <div className="flex items-center justify-between">
-            <div className="bg-emerald-500 text-white font-extrabold text-xs px-5 py-1.5 rounded-full shadow-sm uppercase tracking-wider">
-              Why Choose Us?
-            </div>
+        {(() => {
+          const wc = customWhyChooseUs || {};
+          const heading = wc.heading || "Why Choose Madola?";
+          const paragraph1 = wc.paragraph1 || "Madola Energy is a leading provider of solar power solutions for businesses and homes across the UK. Since our founding in 2013, we've been dedicated to providing high-quality, reliable, and sustainable solar power installations that help our customers save money, reduce their carbon footprint, and make a positive impact on the environment.";
+          const paragraph2 = wc.paragraph2 || "We are committed to staying at the forefront of new and innovative technologies in the solar power industry, and to deliver tailored solutions that meet the unique needs of each customer.";
+          const madolaWayHeading = wc.madolaWayHeading || "The Madola way";
+          const benefits = wc.benefits || [
+            { title: "Certified and accredited", desc: "by leading industry organisations, ensuring the highest standards of quality and performance." },
+            { title: "Free consultation and support", desc: "from our team of experts to help you make informed decisions and choose the best solar power solutions for your needs." },
+          ];
+          const closingLine = wc.closingLine || "Go Solar, with Madola!";
+          const accreditations = wc.accreditations || [];
 
-            <div className="flex items-center gap-2">
-              {!logoError && branding.logoUrl ? (
-                <img
-                  src={branding.logoUrl}
-                  alt={branding.companyName}
-                  onError={() => setLogoError(true)}
-                  className="h-9 max-w-[180px] w-auto object-contain"
-                />
-              ) : (
+          return (
+            <section id="section-why-us" className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-lg space-y-6 text-slate-900 font-sans antialiased">
+              {/* Top Header Row */}
+              <div className="flex items-center justify-between">
+                <div className="bg-emerald-500 text-white font-extrabold text-xs px-5 py-1.5 rounded-full shadow-sm uppercase tracking-wider">
+                  Why Choose Us?
+                </div>
+
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-sm">
-                    <Zap className="w-4 h-4 fill-current" />
-                  </div>
-                  <span className="text-base font-black tracking-wider text-slate-900 uppercase">
-                    MADOLA ENERGY
-                  </span>
+                  {!logoError && branding.logoUrl ? (
+                    <img
+                      src={branding.logoUrl}
+                      alt={branding.companyName}
+                      onError={() => setLogoError(true)}
+                      className="h-9 max-w-[180px] w-auto object-contain"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-sm">
+                        <Zap className="w-4 h-4 fill-current" />
+                      </div>
+                      <span className="text-base font-black tracking-wider text-slate-900 uppercase">
+                        MADOLA ENERGY
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Main Section Title */}
+              <div className="pt-2">
+                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                  {heading}
+                </h2>
+              </div>
+
+              {/* Body Copy */}
+              <div className="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                <p>{paragraph1}</p>
+                <p>{paragraph2}</p>
+              </div>
+
+              {/* Subheading & Bullets */}
+              <div className="space-y-3 pt-2">
+                <h4 className="font-bold text-slate-900 text-sm sm:text-base">
+                  {madolaWayHeading}
+                </h4>
+                <ul className="space-y-2.5 pl-1 text-xs sm:text-sm text-slate-600">
+                  {benefits.map((b: any, idx: number) => (
+                    <li key={idx} className="flex items-start gap-2.5">
+                      <span className="text-slate-400 font-bold">•</span>
+                      <span>
+                        <strong className="text-slate-900 font-bold">{b.title}</strong> {b.desc}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Tagline */}
+              <div className="pt-1">
+                <p className="text-xs sm:text-sm font-bold italic text-slate-900">
+                  {closingLine}
+                </p>
+              </div>
+
+              {/* Accreditation Logos Row - dynamic from template */}
+              {accreditations.length > 0 ? (
+                <div className="pt-6 border-t border-slate-100 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+                  {accreditations.map((acc: any, idx: number) => (
+                    <div key={acc.id || idx} className="h-12 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center" title={acc.name || acc.alt || "Accreditation"}>
+                      <img src={acc.src} alt={acc.alt || acc.name || "Accreditation"} className="max-h-9 max-w-[120px] object-contain" loading="lazy" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+                  {/* Fallback hardcoded badges (matching original design) */}
+                  <div className="h-12 px-3 rounded-xl bg-emerald-700 text-white font-extrabold text-[10px] flex items-center justify-center text-center uppercase shadow-sm">HIES<br/>Accredited Member</div>
+                  <div className="h-12 px-3 rounded-xl bg-purple-900 text-white font-bold text-[9px] flex flex-col justify-center border border-purple-700"><span className="text-pink-300 font-extrabold text-[8px] uppercase">tsi</span><span className="font-black text-[9px] leading-none uppercase">APPROVED CODE</span><span className="text-[7px] text-purple-300">TRADINGSTANDARDS.UK</span></div>
+                  <div className="h-12 px-3 rounded-xl bg-slate-900 text-white font-bold text-[9px] flex items-center gap-1.5 border border-slate-700"><div className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-[10px]">✓</div><div><div className="font-extrabold text-[9px] leading-none uppercase">SafeContractor</div><div className="text-[8px] text-slate-400 font-medium">APPROVED</div></div></div>
+                  <div className="h-12 px-3.5 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-800 font-extrabold text-[10px] flex flex-col justify-center uppercase"><div className="font-black tracking-wider text-xs leading-none">OLEV</div><div className="text-[7px] text-emerald-700 font-semibold tracking-tight">approved installer</div></div>
+                  <div className="h-12 px-3.5 rounded-xl bg-teal-800 text-white font-extrabold text-[10px] flex flex-col justify-center uppercase shadow-sm"><div className="font-black tracking-wider text-xs leading-none text-teal-300">TRUSTMARK</div><div className="text-[7px] text-teal-100 font-medium">Government Endorsed Quality</div></div>
+                  <div className="h-12 px-4 rounded-xl bg-blue-950 text-white font-black text-sm flex items-center gap-1 border border-blue-800 shadow-sm"><span className="text-red-500 text-lg">✓</span><span className="tracking-wider">NAPIT</span></div>
+                  <div className="h-12 px-3 rounded-xl bg-red-700 text-white font-bold text-[9px] flex flex-col justify-center uppercase shadow-sm"><div className="font-black text-[10px] leading-none">City & Guilds</div><div className="text-[7px] text-red-100 font-medium mt-0.5">Accredited Programme</div></div>
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Main Section Title */}
-          <div className="pt-2">
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">
-              Why Choose Madola?
-            </h2>
-          </div>
-
-          {/* Body Copy */}
-          <div className="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
-            <p>
-              Madola Energy is a leading provider of solar power solutions for businesses and homes across the UK. Since our founding in 2013, we've been dedicated to providing high-quality, reliable, and sustainable solar power installations that help our customers save money, reduce their carbon footprint, and make a positive impact on the environment.
-            </p>
-            <p>
-              We are committed to staying at the forefront of new and innovative technologies in the solar power industry, and to deliver tailored solutions that meet the unique needs of each customer.
-            </p>
-          </div>
-
-          {/* Subheading & Bullets */}
-          <div className="space-y-3 pt-2">
-            <h4 className="font-bold text-slate-900 text-sm sm:text-base">
-              The Madola way
-            </h4>
-            <ul className="space-y-2.5 pl-1 text-xs sm:text-sm text-slate-600">
-              <li className="flex items-start gap-2.5">
-                <span className="text-slate-400 font-bold">•</span>
-                <span>
-                  <strong className="text-slate-900 font-bold">Certified and accredited</strong> by leading industry organisations, ensuring the highest standards of quality and performance.
-                </span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="text-slate-400 font-bold">•</span>
-                <span>
-                  <strong className="text-slate-900 font-bold">Free consultation and support</strong> from our team of experts to help you make informed decisions and choose the best solar power solutions for your needs.
-                </span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Tagline */}
-          <div className="pt-1">
-            <p className="text-xs sm:text-sm font-bold italic text-slate-900">
-              Go Solar, with Madola!
-            </p>
-          </div>
-
-          {/* Accreditation Logos Row */}
-          <div className="pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
-            {/* HIES */}
-            <div className="h-12 px-3 rounded-xl bg-emerald-700 text-white font-extrabold text-[10px] flex items-center justify-center text-center uppercase shadow-sm">
-              HIES<br/>Accredited Member
-            </div>
-            {/* TSI Approved Code */}
-            <div className="h-12 px-3 rounded-xl bg-purple-900 text-white font-bold text-[9px] flex flex-col justify-center border border-purple-700">
-              <span className="text-pink-300 font-extrabold text-[8px] uppercase">tsi</span>
-              <span className="font-black text-[9px] leading-none uppercase">APPROVED CODE</span>
-              <span className="text-[7px] text-purple-300">TRADINGSTANDARDS.UK</span>
-            </div>
-            {/* SafeContractor */}
-            <div className="h-12 px-3 rounded-xl bg-slate-900 text-white font-bold text-[9px] flex items-center gap-1.5 border border-slate-700">
-              <div className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-[10px]">✓</div>
-              <div>
-                <div className="font-extrabold text-[9px] leading-none uppercase">SafeContractor</div>
-                <div className="text-[8px] text-slate-400 font-medium">APPROVED</div>
-              </div>
-            </div>
-            {/* OLEV */}
-            <div className="h-12 px-3.5 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-800 font-extrabold text-[10px] flex flex-col justify-center uppercase">
-              <div className="font-black tracking-wider text-xs leading-none">OLEV</div>
-              <div className="text-[7px] text-emerald-700 font-semibold tracking-tight">approved installer</div>
-            </div>
-            {/* TRUSTMARK */}
-            <div className="h-12 px-3.5 rounded-xl bg-teal-800 text-white font-extrabold text-[10px] flex flex-col justify-center uppercase shadow-sm">
-              <div className="font-black tracking-wider text-xs leading-none text-teal-300">TRUSTMARK</div>
-              <div className="text-[7px] text-teal-100 font-medium">Government Endorsed Quality</div>
-            </div>
-            {/* NAPIT */}
-            <div className="h-12 px-4 rounded-xl bg-blue-950 text-white font-black text-sm flex items-center gap-1 border border-blue-800 shadow-sm">
-              <span className="text-red-500 text-lg">✓</span>
-              <span className="tracking-wider">NAPIT</span>
-            </div>
-            {/* City & Guilds */}
-            <div className="h-12 px-3 rounded-xl bg-red-700 text-white font-bold text-[9px] flex flex-col justify-center uppercase shadow-sm">
-              <div className="font-black text-[10px] leading-none">City & Guilds</div>
-              <div className="text-[7px] text-red-100 font-medium mt-0.5">Accredited Programme</div>
-            </div>
-          </div>
-        </section>
+            </section>
+          );
+        })()}
 
         {/* DARK CEO MISSION CARD */}
         <section className="bg-slate-950 text-white border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
