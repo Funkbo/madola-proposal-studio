@@ -83,6 +83,7 @@ export function TemplatesList({ initialTemplates }: TemplatesListProps) {
     if (blocks && blocks.length > 0) {
       const cover = blocks.find((b) => b.type === "cover");
       const ourWork = blocks.find((b) => b.type === "our_work");
+      const whyChooseUs = blocks.find((b) => b.type === "why_choose_us");
       setProposalState((prev: any) => ({
         ...prev,
         heroImage: cover?.data?.heroImage || prev.heroImage,
@@ -91,6 +92,16 @@ export function TemplatesList({ initialTemplates }: TemplatesListProps) {
           ...(cover?.data?.preparedBy || {}),
         },
         galleryImages: ourWork?.data?.images || prev.galleryImages,
+        // Apply all block updates so the preview reflects template edits immediately
+        blocks: blocks.map((b) => ({
+          id: b.id,
+          type: b.type,
+          title: b.title,
+          order: b.order,
+          enabled: b.enabled,
+          data: b.data,
+          conditions: b.conditions,
+        })),
       }));
     }
   };
