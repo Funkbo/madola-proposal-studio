@@ -23,7 +23,9 @@ import {
   Link2,
   Braces,
   ChevronDown,
+  Award,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 export interface TemplateEditorModalProps {
   isOpen: boolean;
@@ -33,7 +35,7 @@ export interface TemplateEditorModalProps {
   onSaveSuccess: (updatedTemplate: ProposalTemplate, blocks?: ProposalBlock[]) => void;
 }
 
-type FieldKind = "text" | "textarea" | "image" | "video" | "bullet_list" | "check";
+type FieldKind = "text" | "textarea" | "image" | "video" | "bullet_list" | "check" | "accreditation_list";
 
 interface FieldDef {
   key: string;
@@ -73,6 +75,12 @@ const BLOCK_FIELD_SCHEMAS: BlockFieldSchema[] = [
       { key: "paragraph2", label: "Paragraph 2 (Our Commitment)", kind: "textarea" },
       { key: "madolaWayHeading", label: "Subheading (The Madola way)", kind: "text" },
       { key: "closingLine", label: "Closing Tagline", kind: "text" },
+      {
+        key: "accreditations",
+        label: "Accreditation & Certificate Logos",
+        kind: "accreditation_list",
+        hint: "Upload real accreditation / certificate images (MCS, NAPIT, HIES, TrustMark...). They are shown in the Why Choose Us section on every customer proposal.",
+      },
     ],
   },
   {
@@ -353,6 +361,28 @@ export function TemplateEditorModal({
             return { ...b, data: { ...b.data, videoUrl: mediaUrl } };
           }
 
+          // Accreditation list updates (why_choose_us)
+          if (target.key === "accreditations" && target.galleryIndex !== undefined) {
+            const currentAccs = Array.isArray(b.data?.accreditations) ? [...b.data.accreditations] : [];
+            if (target.galleryIndex >= 0 && target.galleryIndex < currentAccs.length) {
+              // Replace existing accreditation's image
+              currentAccs[target.galleryIndex] = {
+                ...currentAccs[target.galleryIndex],
+                src: mediaUrl,
+              };
+            } else if (target.galleryIndex === -1) {
+              // Add new accreditation
+              const newAcc = {
+                id: `acc-${Date.now()}`,
+                name: file.name.replace(/\.[^/.]+$/, ""),
+                src: mediaUrl,
+                alt: file.name,
+              };
+              currentAccs.push(newAcc);
+            }
+            return { ...b, data: { ...b.data, accreditations: currentAccs } };
+          }
+
           return { ...b, data: setNestedValue(b.data, target.key, mediaUrl) };
         })
       );
@@ -436,6 +466,20 @@ export function TemplateEditorModal({
         } catch (storageErr) {
           console.warn("localStorage quota exceeded for template cache, using in-memory cache fallback", storageErr);
         }
+      }
+
+      // Persist master template blocks to DB so customer side (any browser) reflects changes
+      try {
+        const supabase = createClient();
+        await supabase
+          .from("master_template_blocks")
+          .upsert({
+            id: MASTER_TEMPLATE_ID,
+            blocks: blocks as any,
+            updated_at: new Date().toISOString(),
+          });
+      } catch (dbErr) {
+        console.warn("Failed to persist master template blocks to DB", dbErr);
       }
 
       setSaveSuccess(true);
@@ -648,6 +692,139 @@ export function TemplateEditorModal({
                   <div className="space-y-3">
                     {selectedSchema.fields.map((field) => {
                       const fieldValue = getNestedValue(selectedBlock.data, field.key);
+
+                      if (field.kind === "accreditation_list") {
+                        const accreditations: any[] = Array.isArray(fieldValue) ? fieldValue : [];
+                        return (
+                          <div
+                            key={field.key}
+                            className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Award className="w-4 h-4 text-emerald-500" />
+                                <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                  {field.label}
+                                </span>
+                              </div>
+                              {uploadingTarget === "accreditations" && (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
+                                  <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
+                                </span>
+                              )}
+                            </div>
+
+                            {field.hint && (
+                              <p className="text-[11px] text-slate-500 leading-relaxed">{field.hint}</p>
+                            )}
+
+                            {accreditations.length === 0 && (
+                              <p className="text-[11px] text-slate-400 italic">
+                                No accreditation logos yet. Add one below to show it on customer proposals.
+                              </p>
+                            )}
+
+                            <div className="space-y-2">
+                              {accreditations.map((acc: any, idx: number) => (
+                                <div
+                                  key={acc.id || idx}
+                                  className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+                                >
+                                  <div className="w-14 h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex items-center justify-center overflow-hidden shrink-0">
+                                    <img
+                                      src={acc.src}
+                                      alt={acc.name || acc.alt || `Accreditation ${idx + 1}`}
+                                      className="max-h-8 max-w-12 object-contain"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                                      }}
+                                    />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <input
+                                      type="text"
+                                      value={acc.name || ""}
+                                      onChange={(e) => {
+                                        const updated = [...accreditations];
+                                        updated[idx] = { ...updated[idx], name: e.target.value };
+                                        handleBlockDataChange(field.key, updated);
+                                      }}
+                                      placeholder={`Accreditation ${idx + 1}`}
+                                      className="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <label className="cursor-pointer p-1 rounded-md text-emerald-600 hover:bg-emerald-500/10 transition" title="Replace with uploaded image">
+                                      <Upload className="w-3.5 h-3.5" />
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) =>
+                                          handleFileUpload(e, { blockId: selectedBlock.id, key: "accreditations", galleryIndex: idx })
+                                        }
+                                      />
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = [...accreditations];
+                                        const temp = updated[idx - 1];
+                                        updated[idx - 1] = updated[idx];
+                                        updated[idx] = temp;
+                                        handleBlockDataChange(field.key, updated);
+                                      }}
+                                      disabled={idx === 0}
+                                      className="p-1 rounded-md text-slate-400 hover:text-slate-600 disabled:opacity-30"
+                                      title="Move up"
+                                    >
+                                      <ArrowUp className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = [...accreditations];
+                                        const temp = updated[idx + 1];
+                                        updated[idx + 1] = updated[idx];
+                                        updated[idx] = temp;
+                                        handleBlockDataChange(field.key, updated);
+                                      }}
+                                      disabled={idx === accreditations.length - 1}
+                                      className="p-1 rounded-md text-slate-400 hover:text-slate-600 disabled:opacity-30"
+                                      title="Move down"
+                                    >
+                                      <ArrowDown className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = accreditations.filter((_, i) => i !== idx);
+                                        handleBlockDataChange(field.key, updated);
+                                      }}
+                                      className="p-1 rounded-md text-rose-500 hover:text-rose-700"
+                                      title="Remove"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition">
+                              <Plus className="w-3.5 h-3.5" /> Add Accreditation Logo
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) =>
+                                  handleFileUpload(e, { blockId: selectedBlock.id, key: "accreditations", galleryIndex: -1 })
+                                }
+                              />
+                            </label>
+                          </div>
+                        );
+                      }
 
                       if (field.kind === "image" || field.kind === "video") {
                         const isVideoField = field.kind === "video";

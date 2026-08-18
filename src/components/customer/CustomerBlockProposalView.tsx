@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { BlockProposal } from "@/types/block-proposal";
 import { createDefaultProposal, calculateProposalTotals } from "@/lib/block-defaults";
-import { getMasterTemplateBlocks } from "@/lib/services/templateCache";
+import { getMasterTemplateBlocks, getMasterTemplateBlocksFromDb } from "@/lib/services/templateCache";
 import { resolveBlockData, resolveTemplateVariables } from "@/lib/template-variables";
 import { useCompanyBranding } from "@/lib/branding";
 import { BlockRenderer } from "@/components/blocks/BlockRenderer";
@@ -77,7 +77,16 @@ export function CustomerBlockProposalView({
           });
 
           // Hydrate client state
-          const templateBlocks = getMasterTemplateBlocks();
+          const localTemplateBlocks = getMasterTemplateBlocks();
+          let templateBlocks = localTemplateBlocks;
+
+          if (!(res.proposal.blocks && res.proposal.blocks.length > 0)) {
+            const dbBlocks = await getMasterTemplateBlocksFromDb();
+            if (dbBlocks && dbBlocks.length > 0) {
+              templateBlocks = dbBlocks;
+            }
+          }
+
           const proposalBlocks =
             res.proposal.blocks && res.proposal.blocks.length > 0
               ? res.proposal.blocks

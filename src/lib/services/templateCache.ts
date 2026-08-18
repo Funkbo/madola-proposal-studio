@@ -1,5 +1,6 @@
 import { ProposalBlock } from "@/types/block-proposal";
 import { createDefaultProposal } from "@/lib/block-defaults";
+import { createClient } from "@/lib/supabase/client";
 
 export const MASTER_TEMPLATE_ID = "template-madola-standard";
 
@@ -38,6 +39,28 @@ export function getMasterTemplateBlocks(): ProposalBlock[] {
   }
 
   return createDefaultProposal().blocks;
+}
+
+/**
+ * Async: fetches the master template blocks from Supabase DB (public read).
+ * Used by the customer page to reflect template edits made in the template editor.
+ */
+export async function getMasterTemplateBlocksFromDb(): Promise<ProposalBlock[] | null> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("master_template_blocks")
+      .select("blocks")
+      .eq("id", MASTER_TEMPLATE_ID)
+      .maybeSingle();
+
+    if (!error && data?.blocks && Array.isArray(data.blocks) && data.blocks.length > 0) {
+      return data.blocks as ProposalBlock[];
+    }
+  } catch (e) {
+    console.warn("Error fetching master template blocks from DB", e);
+  }
+  return null;
 }
 
 /**

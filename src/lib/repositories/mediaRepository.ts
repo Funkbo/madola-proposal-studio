@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { getSupabaseEnv } from "@/lib/supabase/config";
+import { DEFAULT_COMPANY_ID } from "@/lib/repositories/companyBrandingRepository";
 
 export interface MediaAsset {
   id: string;
@@ -17,6 +18,26 @@ export interface MediaAsset {
 
 const LOCAL_STORAGE_MEDIA_KEY = "madola_media_library";
 const BUCKET_NAME = "proposal-media";
+
+async function resolveCompanyId(): Promise<string> {
+  try {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (profile?.company_id) {
+        return profile.company_id;
+      }
+    }
+  } catch (e) {
+    console.warn("resolveCompanyId fallback to default", e);
+  }
+  return DEFAULT_COMPANY_ID;
+}
 
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25MB application limit
 const ALLOWED_MIME_TYPES = [
@@ -166,7 +187,7 @@ export async function uploadMediaAsset(
   if (isConfigured) {
     try {
       const supabase = createClient();
-      const companyId = "c0a80101-0000-0000-0000-000000000001"; // Madola Energy Company ID
+      const companyId = await resolveCompanyId();
       const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
       const storagePath = `companies/${companyId}/media/${assetId}/${sanitizedFilename}`;
 
