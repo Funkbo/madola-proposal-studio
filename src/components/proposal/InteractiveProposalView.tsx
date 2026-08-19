@@ -51,37 +51,40 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
   useEffect(() => {
     setIsMounted(true);
     try {
-      const cache = (window as any).__MADOLA_MASTER_TEMPLATE_CACHE__;
       let cover: any = null;
       let panelLayout: any = null;
       let ourWork: any = null;
       let whyChooseUs: any = null;
 
+      const pickBlocks = (blocks: any[]) => {
+        if (!Array.isArray(blocks) || blocks.length === 0) return;
+        if (!cover) cover = blocks.find((b: any) => b.type === "cover");
+        if (!panelLayout) panelLayout = blocks.find((b: any) => b.type === "panel_layout");
+        if (!ourWork) ourWork = blocks.find((b: any) => b.type === "our_work");
+        if (!whyChooseUs) whyChooseUs = blocks.find((b: any) => b.type === "why_choose_us");
+      };
+
+      // 1. Prefer blocks passed via props (freshest — e.g. right after a template save)
+      const propBlocks = (rawProposal as any).blocks;
+      pickBlocks(propBlocks);
+
+      // 2. Fall back to in-memory cache
+      const cache = (window as any).__MADOLA_MASTER_TEMPLATE_CACHE__;
       if (cache?.blocks) {
-        cover = cache.blocks.find((b: any) => b.type === "cover");
-        panelLayout = cache.blocks.find((b: any) => b.type === "panel_layout");
-        ourWork = cache.blocks.find((b: any) => b.type === "our_work");
-        whyChooseUs = cache.blocks.find((b: any) => b.type === "why_choose_us");
+        pickBlocks(cache.blocks);
       }
 
-      if (!cover && !panelLayout && !ourWork && !whyChooseUs) {
-        const keys = [
-          "madola_template_template-madola-standard",
-          "madola_saved_blocks_proposal-default-1",
-          "madola_current_proposal",
-        ];
-        for (const key of keys) {
-          const saved = localStorage.getItem(key);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            const blocks = parsed.blocks || (Array.isArray(parsed) ? parsed : null);
-            if (blocks) {
-              if (!cover) cover = blocks.find((b: any) => b.type === "cover");
-              if (!panelLayout) panelLayout = blocks.find((b: any) => b.type === "panel_layout");
-              if (!ourWork) ourWork = blocks.find((b: any) => b.type === "our_work");
-              if (!whyChooseUs) whyChooseUs = blocks.find((b: any) => b.type === "why_choose_us");
-            }
-          }
+      // 3. Fall back to localStorage keys (fill only missing blocks)
+      const keys = [
+        "madola_template_template-madola-standard",
+        "madola_saved_blocks_proposal-default-1",
+        "madola_current_proposal",
+      ];
+      for (const key of keys) {
+        const saved = localStorage.getItem(key);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          pickBlocks(parsed.blocks || (Array.isArray(parsed) ? parsed : null));
         }
       }
 
@@ -113,7 +116,7 @@ export function InteractiveProposalView({ proposal: rawProposal, onAccept }: Int
     } catch (e) {
       console.warn("Template cache sync warning", e);
     }
-  }, []); // Run once on mount only
+  }, [rawProposal]);
 
   // Automatically fetch logged-in user details from Supabase Auth session
   useEffect(() => {
