@@ -189,7 +189,7 @@ export async function uploadMediaAsset(
       const supabase = createClient();
       const companyId = await resolveCompanyId();
       const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-      const storagePath = `companies/${companyId}/media/${assetId}/${sanitizedFilename}`;
+      const storagePath = `${companyId}/media/${assetId}/${sanitizedFilename}`;
 
       // Upload file object to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -201,7 +201,11 @@ export async function uploadMediaAsset(
         });
 
       if (uploadError) {
-        console.warn("Supabase Storage upload error:", uploadError.message);
+        console.error("Supabase Storage upload error:", uploadError.message);
+        return {
+          asset: null,
+          error: `Upload failed: ${uploadError.message}. Check that the file is a valid image/video under 25MB.`,
+        };
       }
 
       // Obtain public URL for asset
