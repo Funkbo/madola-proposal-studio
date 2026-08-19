@@ -87,6 +87,8 @@ export interface InteractiveProposalAcceptance {
   notes?: string;
 }
 
+export type ProposalImageSource = "template" | "custom" | "extracted";
+
 export interface InteractiveProposalBranding {
   companyName: string;
   logoReference?: string;
@@ -130,6 +132,8 @@ export interface FullInteractiveProposalData {
   branding: InteractiveProposalBranding;
   heroImage?: string;
   layoutImage?: string;
+  heroSource?: ProposalImageSource;
+  layoutSource?: ProposalImageSource;
   preparedBy?: {
     name?: string;
     email?: string;

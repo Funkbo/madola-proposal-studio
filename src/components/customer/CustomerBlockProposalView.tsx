@@ -101,6 +101,12 @@ export function CustomerBlockProposalView({
               typeof res.proposal.heroImage === "string" && res.proposal.heroImage.length > 50
                 ? res.proposal.heroImage
                 : undefined;
+            // Source priority used at creation: custom > template > extracted.
+            // 'custom' keeps the proposal's own hero/layout (block or RPC value);
+            // 'template'/'extracted' prefer the synced proposal-level image, which
+            // prevents a stale block snapshot from overriding the current template.
+            const heroSource = res.proposal.heroSource;
+            const layoutSource = res.proposal.layoutSource;
 
             setCurrentProposal((prev) => ({
               ...prev,
@@ -113,13 +119,35 @@ export function CustomerBlockProposalView({
               },
               heroImage: rpcHeroImage || prev.heroImage,
               layoutImage: rpcLayoutImage || prev.layoutImage,
-              blocks: proposalBlocks.map((b: any) =>
-                b.type === "panel_layout" && rpcLayoutImage && !b.data?.layoutImage
-                  ? { ...b, data: { ...b.data, layoutImage: rpcLayoutImage } }
-                  : b.type === "cover" && rpcHeroImage && !b.data?.heroImage
-                  ? { ...b, data: { ...b.data, heroImage: rpcHeroImage } }
-                  : b
-              ),
+              blocks: proposalBlocks.map((b: any) => {
+                if (b.type === "panel_layout") {
+                  const blockLayout =
+                    typeof b.data?.layoutImage === "string" && b.data.layoutImage.length > 50
+                      ? b.data.layoutImage
+                      : undefined;
+                  const resolved =
+                    layoutSource === "custom"
+                      ? blockLayout || rpcLayoutImage
+                      : rpcLayoutImage || blockLayout;
+                  return resolved && resolved !== b.data?.layoutImage
+                    ? { ...b, data: { ...b.data, layoutImage: resolved } }
+                    : b;
+                }
+                if (b.type === "cover") {
+                  const blockHero =
+                    typeof b.data?.heroImage === "string" && b.data.heroImage.length > 50
+                      ? b.data.heroImage
+                      : undefined;
+                  const resolved =
+                    heroSource === "custom"
+                      ? blockHero || rpcHeroImage
+                      : rpcHeroImage || blockHero;
+                  return resolved && resolved !== b.data?.heroImage
+                    ? { ...b, data: { ...b.data, heroImage: resolved } }
+                    : b;
+                }
+                return b;
+              }),
               paymentSchedule: res.proposal.paymentSchedule || prev.paymentSchedule,
             }));
           }

@@ -506,6 +506,24 @@ export function TemplateEditorModal({
           alert(`Template saved locally but FAILED to persist to the database: ${dbError.message}. Please check RLS permissions and try again.`);
           return;
         }
+
+        // Propagate the newly saved Master Template hero/layout to proposals that
+        // are still using the template source (custom/extracted proposal images
+        // are preserved by the SECURITY DEFINER function).
+        try {
+          const coverBlock = blocks.find((b) => b.type === "cover");
+          const panelLayoutBlock = blocks.find((b) => b.type === "panel_layout");
+          const templateHero = coverBlock?.data?.heroImage || null;
+          const templateLayout = panelLayoutBlock?.data?.layoutImage || null;
+          if (templateHero || templateLayout) {
+            await supabase.rpc("propagate_template_images", {
+              p_hero_image: templateHero,
+              p_layout_image: templateLayout,
+            });
+          }
+        } catch (propErr) {
+          console.warn("Template image propagation warning:", propErr);
+        }
       } catch (dbErr) {
         console.error("Failed to persist master template blocks to DB", dbErr);
         alert("Template saved locally but FAILED to persist to the database. Please try again.");

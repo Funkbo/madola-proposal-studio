@@ -520,6 +520,7 @@ export async function getPublicProposalData(publicToken: string): Promise<any> {
         .from("proposals")
         .select(`
           id, reference, status, public_token, published_at, expires_at, hero_image_url, layout_image_url,
+          hero_source, layout_source,
           customer:customers(first_name, last_name, email, phone, address_line_1, postcode),
           solar_system:solar_systems(system_size_kwp, panel_count, panel_wattage, battery_capacity_kwh),
           financial:financials(system_price)
@@ -552,6 +553,8 @@ export async function getPublicProposalData(publicToken: string): Promise<any> {
             expiresAt: propRow.expires_at || null,
             heroImage: propRow.hero_image_url || null,
             layoutImage: propRow.layout_image_url || null,
+            heroSource: propRow.hero_source || "template",
+            layoutSource: propRow.layout_source || "template",
             customer: {
               name: cust ? `${cust.first_name || ""} ${cust.last_name || ""}`.trim() : "Client",
               email: cust?.email || "",

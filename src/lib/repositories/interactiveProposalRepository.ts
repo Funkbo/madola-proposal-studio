@@ -1,5 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase/getSupabaseClient";
-import { FullInteractiveProposalData } from "@/types/interactiveProposal";
+import { FullInteractiveProposalData, ProposalImageSource } from "@/types/interactiveProposal";
 import { ExtractionResult } from "@/types/extraction";
 import { getSupabaseEnv } from "@/lib/supabase/config";
 import { DEFAULT_COMPANY_ID } from "@/lib/repositories/companyBrandingRepository";
@@ -8,6 +8,22 @@ import { getMasterTemplateBlocks, getMasterTemplateBlocksFromDb } from "@/lib/se
 import { ProposalBlock } from "@/types/block-proposal";
 
 const LOCAL_PROPOSAL_CACHE_KEY = "madola_interactive_proposals_cache";
+
+/**
+ * Resolve which hero/layout image a proposal should use and where it came from.
+ * Priority (highest first): explicit proposal custom override -> Master
+ * Template image -> OpenSolar-extracted image.
+ */
+export function resolveProposalImageSource(params: {
+  explicitCustom?: string | null;
+  templateImage?: string | null;
+  extractedImage?: string | null;
+}): { url: string | null; source: ProposalImageSource } {
+  if (params.explicitCustom) return { url: params.explicitCustom, source: "custom" };
+  if (params.templateImage) return { url: params.templateImage, source: "template" };
+  if (params.extractedImage) return { url: params.extractedImage, source: "extracted" };
+  return { url: null, source: "template" };
+}
 
 function getMemoryCache(): Record<string, FullInteractiveProposalData> {
   if (typeof window === "undefined") return {};
@@ -314,7 +330,8 @@ export function convertExtractionToInteractiveProposal(
   extraction: ExtractionResult,
   token: string,
   status: "draft" | "published" = "published",
-  templateId?: string
+  templateId?: string,
+  overrides?: { heroImage?: string | null; layoutImage?: string | null }
 ): FullInteractiveProposalData {
   const sysPrice = typeof extraction.systemPricePounds.value === "number" ? extraction.systemPricePounds.value : 10950;
   const depPct = typeof extraction.depositPercent.value === "number" ? extraction.depositPercent.value : 25;
@@ -323,8 +340,10 @@ export function convertExtractionToInteractiveProposal(
 
   // Read Custom Master Template Images & Content from Cache
   let customHeroImage = DEFAULT_MASTER_PROPOSAL.heroImage;
+  let customLayoutImage: string | null = null;
   let customPreparedBy = DEFAULT_MASTER_PROPOSAL.preparedBy;
   let customGalleryImages = DEFAULT_MASTER_PROPOSAL.galleryImages;
+  let hasSavedTemplateHero = false;
 
   if (typeof window !== "undefined") {
     try {
@@ -333,8 +352,13 @@ export function convertExtractionToInteractiveProposal(
       if (saved) {
         const parsed = JSON.parse(saved);
         const cover = parsed.blocks?.find((b: any) => b.type === "cover");
+        const panelLayout = parsed.blocks?.find((b: any) => b.type === "panel_layout");
         const ourWork = parsed.blocks?.find((b: any) => b.type === "our_work");
-        if (cover?.data?.heroImage) customHeroImage = cover.data.heroImage;
+        if (cover?.data?.heroImage) {
+          customHeroImage = cover.data.heroImage;
+          hasSavedTemplateHero = true;
+        }
+        if (panelLayout?.data?.layoutImage) customLayoutImage = panelLayout.data.layoutImage;
         if (cover?.data?.preparedBy) customPreparedBy = { ...customPreparedBy, ...cover.data.preparedBy };
         if (ourWork?.data?.images) customGalleryImages = ourWork.data.images;
       }
@@ -346,6 +370,18 @@ export function convertExtractionToInteractiveProposal(
   const extractedHeroImage = extraction.heroImage || extraction.allExtractedImages?.[0];
   const extractedLayoutImage = extraction.roofLayoutImage || extraction.allExtractedImages?.[0];
 
+  // Priority: explicit proposal custom hero -> Master Template hero -> extracted.
+  const hero = resolveProposalImageSource({
+    explicitCustom: overrides?.heroImage,
+    templateImage: hasSavedTemplateHero ? customHeroImage : null,
+    extractedImage: extractedHeroImage,
+  });
+  const layout = resolveProposalImageSource({
+    explicitCustom: overrides?.layoutImage,
+    templateImage: customLayoutImage || (hasSavedTemplateHero ? customHeroImage : null),
+    extractedImage: extractedLayoutImage,
+  });
+
   return {
     id: `prop-${token.substring(0, 8)}`,
     reference: String(extraction.proposalReference.value || "10534548"),
@@ -354,8 +390,10 @@ export function convertExtractionToInteractiveProposal(
     status,
     createdAt: String(extraction.proposalDate.value || new Date().toLocaleDateString("en-GB")),
     publishedAt: new Date().toISOString(),
-    heroImage: extractedHeroImage || customHeroImage,
-    layoutImage: extractedLayoutImage || DEFAULT_MASTER_PROPOSAL.layoutImage,
+    heroImage: hero.url || DEFAULT_MASTER_PROPOSAL.heroImage,
+    layoutImage: layout.url || DEFAULT_MASTER_PROPOSAL.layoutImage,
+    heroSource: hero.source,
+    layoutSource: layout.source,
     preparedBy: customPreparedBy,
     galleryImages: customGalleryImages,
 
@@ -558,17 +596,38 @@ export async function saveInteractiveProposal(proposal: FullInteractiveProposalD
 
       // 3. Persist any base64 hero/layout images to storage so we store
       //    lightweight public URLs instead of heavy data URLs.
-      const heroImage = await persistProposalImage(supabase, companyId, proposal.heroImage, "hero");
-      const layoutImage = await persistProposalImage(supabase, companyId, proposal.layoutImage, "layout");
+      let heroImage = await persistProposalImage(supabase, companyId, proposal.heroImage, "hero");
+      let layoutImage = await persistProposalImage(supabase, companyId, proposal.layoutImage, "layout");
+      let heroSource: ProposalImageSource = proposal.heroSource || "template";
+      let layoutSource: ProposalImageSource = proposal.layoutSource || "template";
 
       // 4. Check if Proposal row already exists
       const { data: existingProposal } = await supabase
         .from("proposals")
-        .select("id")
+        .select("id, hero_source, layout_source, hero_image_url, layout_image_url")
         .or(`reference.eq.${proposal.reference},public_token.eq.${proposal.publicToken}`)
         .maybeSingle();
 
       let propId: string | null = existingProposal?.id || null;
+
+      // 4b. Re-saving an existing proposal must NOT clobber a per-proposal
+      //     custom or OpenSolar-extracted image with the Master Template hero.
+      //     Only proposals still using the template source adopt the incoming
+      //     (template > extracted) resolution.
+      if (existingProposal?.id && heroSource !== "custom") {
+        const existingHeroSource = existingProposal.hero_source || "template";
+        if (existingHeroSource === "custom" || existingHeroSource === "extracted") {
+          heroImage = existingProposal.hero_image_url || heroImage;
+          heroSource = existingHeroSource;
+        }
+      }
+      if (existingProposal?.id && layoutSource !== "custom") {
+        const existingLayoutSource = existingProposal.layout_source || "template";
+        if (existingLayoutSource === "custom" || existingLayoutSource === "extracted") {
+          layoutImage = existingProposal.layout_image_url || layoutImage;
+          layoutSource = existingLayoutSource;
+        }
+      }
 
       if (existingProposal?.id) {
         // Update status, public token and images
@@ -580,6 +639,8 @@ export async function saveInteractiveProposal(proposal: FullInteractiveProposalD
             published_at: proposal.publishedAt,
             hero_image_url: heroImage,
             layout_image_url: layoutImage,
+            hero_source: heroSource,
+            layout_source: layoutSource,
             updated_at: new Date().toISOString(),
           })
           .eq("id", existingProposal.id);
@@ -601,6 +662,8 @@ export async function saveInteractiveProposal(proposal: FullInteractiveProposalD
             published_at: proposal.publishedAt,
             hero_image_url: heroImage,
             layout_image_url: layoutImage,
+            hero_source: heroSource,
+            layout_source: layoutSource,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
@@ -617,10 +680,11 @@ export async function saveInteractiveProposal(proposal: FullInteractiveProposalD
         }
       }
 
-      // 5. Write per-proposal blocks (injecting extracted hero/layout images
-      //    into the cover / panel-layout blocks so the public link renders them).
+      // 5. Write per-proposal blocks (injecting the resolved hero/layout
+      //    images into the cover / panel-layout blocks so the public link
+      //    renders them, respecting each image's source).
       if (propId) {
-        await writeProposalBlocks(supabase, propId, { heroImage, layoutImage });
+        await writeProposalBlocks(supabase, propId, { heroImage, layoutImage, heroSource, layoutSource });
       }
     } catch (e) {
       console.warn("saveInteractiveProposal Supabase relational insert exception", e);
@@ -767,7 +831,7 @@ async function persistProposalImage(
 async function writeProposalBlocks(
   supabase: any,
   proposalId: string,
-  images: { heroImage: string | null; layoutImage: string | null }
+  images: { heroImage: string | null; layoutImage: string | null; heroSource?: ProposalImageSource; layoutSource?: ProposalImageSource }
 ): Promise<void> {
   try {
     let blocks: ProposalBlock[] | null = await getMasterTemplateBlocksFromDb();
@@ -776,16 +840,20 @@ async function writeProposalBlocks(
     }
     if (!blocks || blocks.length === 0) return;
 
-    const heroImage = images.heroImage;
-    const layoutImage = images.layoutImage;
+    const { heroImage, layoutImage, heroSource, layoutSource } = images;
 
     const enhanced = blocks.map((b) => {
       const data = { ...(b.data || {}) };
-      if (b.type === "cover" && heroImage) {
-        data.heroImage = heroImage;
+      if (b.type === "cover") {
+        // heroImage is already resolved by source priority (custom > template
+        // > extracted) upstream, so the cover block always reflects the
+        // correct image without blindly overwriting per-proposal images.
+        if (heroImage) data.heroImage = heroImage;
+        if (heroSource) data.heroSource = heroSource;
       }
-      if (b.type === "panel_layout" && layoutImage) {
-        data.layoutImage = layoutImage;
+      if (b.type === "panel_layout") {
+        if (layoutImage) data.layoutImage = layoutImage;
+        if (layoutSource) data.layoutSource = layoutSource;
       }
       return { ...b, data };
     });
@@ -839,10 +907,18 @@ export function applyMasterTemplateOverrides(proposal: FullInteractiveProposalDa
     const preparedBy = cover?.data?.preparedBy;
     const galleryImages = ourWork?.data?.images || (ourWork?.data?.mainImage ? [ourWork.data.mainImage.url, ...(ourWork.data.supportingImages?.map((s: any) => s.url) || [])] : null);
 
+    // Proposals with their own custom / extracted image keep it; only
+    // template-source proposals inherit the current Master Template hero/layout.
+    const keepsOwn = (src?: ProposalImageSource) => src === "custom" || src === "extracted";
+
     return {
       ...proposal,
-      heroImage: heroImage || proposal.heroImage,
-      layoutImage: proposal.layoutImage || layoutImage || heroImage || proposal.heroImage,
+      heroImage: keepsOwn(proposal.heroSource)
+        ? proposal.heroImage || heroImage || proposal.heroImage
+        : heroImage || proposal.heroImage,
+      layoutImage: keepsOwn(proposal.layoutSource)
+        ? proposal.layoutImage || layoutImage || heroImage || proposal.heroImage
+        : proposal.layoutImage || layoutImage || heroImage || proposal.heroImage,
       preparedBy: preparedBy ? { ...proposal.preparedBy, ...preparedBy } : proposal.preparedBy,
       galleryImages: galleryImages && galleryImages.length > 0 ? galleryImages : proposal.galleryImages,
     };
@@ -875,6 +951,8 @@ export async function getInteractiveProposal(tokenOrSlug: string): Promise<FullI
           publishedAt: prop.publishedAt,
           heroImage: prop.heroImage || DEFAULT_MASTER_PROPOSAL.heroImage,
           layoutImage: prop.layoutImage || DEFAULT_MASTER_PROPOSAL.layoutImage,
+          heroSource: (prop.heroSource as ProposalImageSource) || "template",
+          layoutSource: (prop.layoutSource as ProposalImageSource) || "template",
           customer: {
             name: prop.customer?.name || DEFAULT_MASTER_PROPOSAL.customer.name,
             email: prop.customer?.email || DEFAULT_MASTER_PROPOSAL.customer.email,
@@ -898,6 +976,7 @@ export async function getInteractiveProposal(tokenOrSlug: string): Promise<FullI
         .from("proposals")
         .select(`
           id, reference, status, public_token, published_at, hero_image_url, layout_image_url,
+          hero_source, layout_source,
           customer:customers(first_name, last_name, email, phone, address_line_1, postcode),
           solar_system:solar_systems(system_size_kwp, annual_generation_kwh, panel_count, panel_wattage, panel_manufacturer, panel_model, inverter_manufacturer, inverter_model, battery_manufacturer, battery_model, battery_capacity_kwh),
           financial:financials(system_price)
@@ -920,6 +999,8 @@ export async function getInteractiveProposal(tokenOrSlug: string): Promise<FullI
           publishedAt: propRow.published_at || new Date().toISOString(),
           heroImage: propRow.hero_image_url || DEFAULT_MASTER_PROPOSAL.heroImage,
           layoutImage: propRow.layout_image_url || DEFAULT_MASTER_PROPOSAL.layoutImage,
+          heroSource: (propRow.hero_source as ProposalImageSource) || "template",
+          layoutSource: (propRow.layout_source as ProposalImageSource) || "template",
           customer: {
             name: cust ? `${cust.first_name || ""} ${cust.last_name || ""}`.trim() : DEFAULT_MASTER_PROPOSAL.customer.name,
             email: cust?.email || DEFAULT_MASTER_PROPOSAL.customer.email,
