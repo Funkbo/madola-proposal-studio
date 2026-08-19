@@ -116,6 +116,8 @@ export function CustomerBlockProposalView({
               blocks: proposalBlocks.map((b: any) =>
                 b.type === "panel_layout" && rpcLayoutImage && !b.data?.layoutImage
                   ? { ...b, data: { ...b.data, layoutImage: rpcLayoutImage } }
+                  : b.type === "cover" && rpcHeroImage && !b.data?.heroImage
+                  ? { ...b, data: { ...b.data, heroImage: rpcHeroImage } }
                   : b
               ),
               paymentSchedule: res.proposal.paymentSchedule || prev.paymentSchedule,

@@ -3,6 +3,9 @@ import { FullInteractiveProposalData } from "@/types/interactiveProposal";
 import { ExtractionResult } from "@/types/extraction";
 import { getSupabaseEnv } from "@/lib/supabase/config";
 import { DEFAULT_COMPANY_ID } from "@/lib/repositories/companyBrandingRepository";
+import { saveProposalBlocks } from "@/lib/repositories/proposalBlockRepository";
+import { getMasterTemplateBlocks, getMasterTemplateBlocksFromDb } from "@/lib/services/templateCache";
+import { ProposalBlock } from "@/types/block-proposal";
 
 const LOCAL_PROPOSAL_CACHE_KEY = "madola_interactive_proposals_cache";
 
@@ -553,12 +556,19 @@ export async function saveInteractiveProposal(proposal: FullInteractiveProposalD
         customerId = fallbackCust.id;
       }
 
-      // 3. Check if Proposal row already exists
+      // 3. Persist any base64 hero/layout images to storage so we store
+      //    lightweight public URLs instead of heavy data URLs.
+      const heroImage = await persistProposalImage(supabase, companyId, proposal.heroImage, "hero");
+      const layoutImage = await persistProposalImage(supabase, companyId, proposal.layoutImage, "layout");
+
+      // 4. Check if Proposal row already exists
       const { data: existingProposal } = await supabase
         .from("proposals")
         .select("id")
         .or(`reference.eq.${proposal.reference},public_token.eq.${proposal.publicToken}`)
         .maybeSingle();
+
+      let propId: string | null = existingProposal?.id || null;
 
       if (existingProposal?.id) {
         // Update status, public token and images
@@ -568,11 +578,15 @@ export async function saveInteractiveProposal(proposal: FullInteractiveProposalD
             status: proposal.status,
             public_token: proposal.publicToken,
             published_at: proposal.publishedAt,
-            hero_image_url: proposal.heroImage || null,
-            layout_image_url: proposal.layoutImage || null,
+            hero_image_url: heroImage,
+            layout_image_url: layoutImage,
             updated_at: new Date().toISOString(),
           })
           .eq("id", existingProposal.id);
+
+        // Re-sync child rows (delete stale + re-insert) so edits to the
+        // extraction data are reflected on the same proposal record.
+        await syncProposalChildren(supabase, existingProposal.id as string, proposal);
       } else {
         // Full Relational Insert for New Proposal
         const { data: newProposal, error: propErr } = await supabase
@@ -585,8 +599,8 @@ export async function saveInteractiveProposal(proposal: FullInteractiveProposalD
             status: proposal.status,
             public_token: proposal.publicToken,
             published_at: proposal.publishedAt,
-            hero_image_url: proposal.heroImage || null,
-            layout_image_url: proposal.layoutImage || null,
+            hero_image_url: heroImage,
+            layout_image_url: layoutImage,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
@@ -598,76 +612,190 @@ export async function saveInteractiveProposal(proposal: FullInteractiveProposalD
         }
 
         if (!propErr && newProposal?.id) {
-          const propId = newProposal.id;
-
-          // Insert linked Solar System record
-          await supabase.from("solar_systems").insert({
-            proposal_id: propId,
-            system_size_kwp: proposal.system.systemSizeKwp,
-            annual_generation_kwh: proposal.system.annualGenerationKwh,
-            panel_count: proposal.system.panelCount,
-            panel_wattage: proposal.system.panelWattage,
-            panel_manufacturer: proposal.system.panelManufacturer,
-            panel_model: proposal.system.panelModel,
-            inverter_manufacturer: proposal.system.inverterManufacturer,
-            inverter_model: proposal.system.inverterModel,
-            inverter_capacity_kw: proposal.system.inverterCapacityKw,
-            battery_manufacturer: proposal.system.batteryManufacturer,
-            battery_model: proposal.system.batteryModel,
-            battery_capacity_kwh: proposal.system.batteryCapacityKwh,
-            annual_consumption_kwh: proposal.performance.annualConsumptionKwh,
-            self_consumption_percent: proposal.performance.selfConsumptionPercent,
-            self_sufficiency_percent: proposal.performance.selfSufficiencyPercent,
-            export_kwh: proposal.performance.exportToGridKwh,
-          });
-
-          // Insert linked Financials record
-          await supabase.from("financials").insert({
-            proposal_id: propId,
-            system_price: proposal.financials.baseSystemPrice,
-            vat: proposal.financials.vatRatePercent,
-            deposit: proposal.milestones[0]?.amount || Math.round(proposal.financials.baseSystemPrice * 0.25),
-            annual_saving: proposal.financials.firstYearSavings,
-            lifetime_saving: proposal.financials.lifetime25YearSavings,
-            payback_years: proposal.financials.breakEvenYear,
-            inflation_rate: proposal.financials.inflationRatePercent,
-          });
-
-          // Insert linked Products
-          if (proposal.products && proposal.products.length > 0) {
-            const productInserts = proposal.products.map((p) => ({
-              proposal_id: propId,
-              name: p.name,
-              category: p.category,
-              manufacturer: p.manufacturer,
-              model: p.model,
-              quantity: p.quantity,
-              unit_price: p.price,
-              included: p.included,
-              description: p.description,
-              warranty: p.warranty,
-            }));
-            await supabase.from("proposal_products").insert(productInserts);
-          }
-
-          // Insert Payment Milestones
-          if (proposal.milestones && proposal.milestones.length > 0) {
-            const milestoneInserts = proposal.milestones.map((m) => ({
-              proposal_id: propId,
-              label: m.label,
-              percentage: m.percentage,
-              amount: m.amount,
-              payment_method: m.paymentMethod,
-              description: m.description,
-              order_index: m.orderIndex,
-            }));
-            await supabase.from("payment_milestones").insert(milestoneInserts);
-          }
+          propId = newProposal.id as string;
+          await syncProposalChildren(supabase, propId, proposal);
         }
+      }
+
+      // 5. Write per-proposal blocks (injecting extracted hero/layout images
+      //    into the cover / panel-layout blocks so the public link renders them).
+      if (propId) {
+        await writeProposalBlocks(supabase, propId, { heroImage, layoutImage });
       }
     } catch (e) {
       console.warn("saveInteractiveProposal Supabase relational insert exception", e);
     }
+  }
+}
+
+/**
+ * Re-writes the proposal's child rows (solar_systems, financials,
+ * proposal_products, payment_milestones) so every save reflects the latest
+ * extraction data. Deletes stale rows first to avoid duplicate/partial state.
+ */
+async function syncProposalChildren(supabase: any, propId: string, proposal: FullInteractiveProposalData): Promise<void> {
+  try {
+    // 1. Solar System record
+    const { error: solarErr } = await supabase.from("solar_systems").delete().eq("proposal_id", propId);
+    if (!solarErr) {
+      await supabase.from("solar_systems").insert({
+        proposal_id: propId,
+        system_size_kwp: proposal.system.systemSizeKwp,
+        annual_generation_kwh: proposal.system.annualGenerationKwh,
+        panel_count: proposal.system.panelCount,
+        panel_wattage: proposal.system.panelWattage,
+        panel_manufacturer: proposal.system.panelManufacturer,
+        panel_model: proposal.system.panelModel,
+        inverter_manufacturer: proposal.system.inverterManufacturer,
+        inverter_model: proposal.system.inverterModel,
+        inverter_capacity_kw: proposal.system.inverterCapacityKw,
+        battery_manufacturer: proposal.system.batteryManufacturer,
+        battery_model: proposal.system.batteryModel,
+        battery_capacity_kwh: proposal.system.batteryCapacityKwh,
+        annual_consumption_kwh: proposal.performance.annualConsumptionKwh,
+        self_consumption_percent: proposal.performance.selfConsumptionPercent,
+        self_sufficiency_percent: proposal.performance.selfSufficiencyPercent,
+        export_kwh: proposal.performance.exportToGridKwh,
+      });
+    }
+
+    // 2. Financials record
+    const { error: finErr } = await supabase.from("financials").delete().eq("proposal_id", propId);
+    if (!finErr) {
+      await supabase.from("financials").insert({
+        proposal_id: propId,
+        system_price: proposal.financials.baseSystemPrice,
+        vat: proposal.financials.vatRatePercent,
+        deposit: proposal.milestones[0]?.amount || Math.round(proposal.financials.baseSystemPrice * 0.25),
+        annual_saving: proposal.financials.firstYearSavings,
+        lifetime_saving: proposal.financials.lifetime25YearSavings,
+        payback_years: proposal.financials.breakEvenYear,
+        inflation_rate: proposal.financials.inflationRatePercent,
+      });
+    }
+
+    // 3. Products
+    await supabase.from("proposal_products").delete().eq("proposal_id", propId);
+    if (proposal.products && proposal.products.length > 0) {
+      const productInserts = proposal.products.map((p) => ({
+        proposal_id: propId,
+        custom_name: p.name,
+        custom_description: p.description || null,
+        quantity: p.quantity,
+        unit_price: p.price,
+        included: p.included,
+      }));
+      const { error: productsErr } = await supabase.from("proposal_products").insert(productInserts);
+      if (productsErr) {
+        console.warn("Proposal products insert warning in saveInteractiveProposal:", productsErr.message);
+      }
+    }
+
+    // 4. Payment Milestones
+    await supabase.from("payment_milestones").delete().eq("proposal_id", propId);
+    if (proposal.milestones && proposal.milestones.length > 0) {
+      const milestoneInserts = proposal.milestones.map((m) => ({
+        proposal_id: propId,
+        label: m.label,
+        percentage: m.percentage,
+        amount: m.amount,
+        payment_method: m.paymentMethod,
+        description: m.description,
+        order_index: m.orderIndex,
+      }));
+      await supabase.from("payment_milestones").insert(milestoneInserts);
+    }
+  } catch (e) {
+    console.warn("syncProposalChildren exception:", e);
+  }
+}
+
+/**
+ * Uploads a base64 data URL to the public proposal-images bucket inside the
+ * company folder and returns a public storage URL. Non-data URLs pass through.
+ */
+async function persistProposalImage(
+  supabase: any,
+  companyId: string,
+  value: string | null | undefined,
+  role: string
+): Promise<string | null> {
+  if (!value) return null;
+  if (!value.startsWith("data:")) return value;
+
+  try {
+    const isPng = value.startsWith("data:image/png");
+    const mime = isPng ? "image/png" : "image/jpeg";
+    const ext = isPng ? "png" : "jpg";
+
+    let arrayBuffer: Uint8Array;
+    if (typeof Buffer !== "undefined") {
+      arrayBuffer = new Uint8Array(Buffer.from(value.split(",")[1] || "", "base64"));
+    } else {
+      const binary = atob(value.split(",")[1] || "");
+      arrayBuffer = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) arrayBuffer[i] = binary.charCodeAt(i);
+    }
+
+    const stamp = Date.now();
+    const objectPath = `${companyId}/${stamp}_${role}.${ext}`;
+
+    const { error: upErr } = await supabase.storage
+      .from("proposal-images")
+      .upload(objectPath, arrayBuffer, { contentType: mime, upsert: true });
+
+    if (upErr) {
+      console.warn(`Proposal image upload notice (${role}):`, upErr.message);
+      return value;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("proposal-images")
+      .getPublicUrl(objectPath);
+    return publicUrlData?.publicUrl || value;
+  } catch (e) {
+    console.warn(`Proposal image persistence notice (${role}) keeping data URL:`, e);
+    return value;
+  }
+}
+
+/**
+ * Persists per-proposal blocks for a proposal, injecting the extracted hero and
+ * layout images into the cover / panel-layout blocks. Uses the master template
+ * blocks (DB first, then cache/localStorage/defaults) as the source of truth.
+ */
+async function writeProposalBlocks(
+  supabase: any,
+  proposalId: string,
+  images: { heroImage: string | null; layoutImage: string | null }
+): Promise<void> {
+  try {
+    let blocks: ProposalBlock[] | null = await getMasterTemplateBlocksFromDb();
+    if (!blocks || blocks.length === 0) {
+      blocks = getMasterTemplateBlocks();
+    }
+    if (!blocks || blocks.length === 0) return;
+
+    const heroImage = images.heroImage;
+    const layoutImage = images.layoutImage;
+
+    const enhanced = blocks.map((b) => {
+      const data = { ...(b.data || {}) };
+      if (b.type === "cover" && heroImage) {
+        data.heroImage = heroImage;
+      }
+      if (b.type === "panel_layout" && layoutImage) {
+        data.layoutImage = layoutImage;
+      }
+      return { ...b, data };
+    });
+
+    const result = await saveProposalBlocks(proposalId, enhanced);
+    if (!result.success) {
+      console.warn("saveProposalBlocks warning:", result.error);
+    }
+  } catch (e) {
+    console.warn("writeProposalBlocks exception:", e);
   }
 }
 

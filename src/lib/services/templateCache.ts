@@ -23,7 +23,6 @@ export function getMasterTemplateBlocks(): ProposalBlock[] {
     const keys = [
       `madola_template_${MASTER_TEMPLATE_ID}`,
       "madola_saved_blocks_proposal-default-1",
-      "madola_current_proposal",
     ];
     for (const key of keys) {
       const saved = localStorage.getItem(key);

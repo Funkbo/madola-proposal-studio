@@ -583,67 +583,8 @@ export async function getPublicProposalData(publicToken: string): Promise<any> {
         };
       }
     } catch (e) {
-      console.warn("Supabase get_public_proposal RPC failed; using local fallback", e);
+      console.warn("Supabase get_public_proposal RPC failed", e);
     }
-  }
-
-  if (typeof window !== "undefined") {
-    try {
-      const savedList = localStorage.getItem("madola_saved_proposals_list");
-      if (savedList) {
-        const list = JSON.parse(savedList);
-        const match = Array.isArray(list) ? list.find((p: any) => p.reference === publicToken || p.id === publicToken || p.publicToken === publicToken) : null;
-        if (match) {
-          return {
-            status: "success",
-            proposal: {
-              reference: match.reference,
-              status: match.status || "published",
-              publishedAt: match.publishedAt || new Date().toISOString(),
-              expiresAt: null,
-              customer: match.customer || { name: "Client", email: "", address: "", postcode: "" },
-              solarSystem: {
-                systemSizeKwp: parseFloat(match.systemSizeKw) || 5.4,
-                panelCount: match.panelCount || 12,
-                panelWattage: match.panelWattage || 450,
-                batteryCapacityKwh: match.batteryCapacity || 13.5,
-              },
-              financials: { systemPrice: match.basePrice || 7950 },
-              blocks: match.blocks || [],
-              products: match.extraProducts || [],
-              paymentSchedule: match.paymentSchedule || [],
-              acceptance: null,
-            },
-          };
-        }
-      }
-    } catch (e) {}
-  }
-
-  // Always return the master template for any pub_tok_/reference token so proposal
-  // links never 404 — CustomerBlockProposalView hydrates blocks from the template.
-  if (publicToken.startsWith("pub_tok_") || publicToken === "VYKDSFMWJW5N" || publicToken === "2C1BFH47BMWY") {
-    return {
-      status: "success",
-      proposal: {
-        reference: publicToken,
-        status: "published",
-        publishedAt: new Date().toISOString(),
-        expiresAt: null,
-        customer: { name: "[Customer Name]", email: "", address: "", postcode: "" },
-        solarSystem: {
-          systemSizeKwp: 5.4,
-          panelCount: 12,
-          panelWattage: 450,
-          batteryCapacityKwh: 13.5,
-        },
-        financials: { systemPrice: 7950 },
-        blocks: [],
-        products: [],
-        paymentSchedule: [],
-        acceptance: null,
-      },
-    };
   }
 
   return { error: "not_found", message: "Proposal link not found or invalid." };
@@ -661,58 +602,32 @@ export async function acceptPublicProposal(
     try {
       const supabase = await getSupabaseClient();
 
-      try {
-        const { data: authUser } = await supabase.auth.getUser();
-        if (!authUser?.user) {
-          console.warn("No authenticated user for proposal acceptance");
-        }
-      } catch (authErr) {
-        console.warn("Auth check notice in acceptPublicProposal:", authErr);
-      }
+      const { data, error } = await supabase.rpc("accept_public_proposal", {
+        p_token: publicToken,
+        p_signer_name: signerName || null,
+        p_signer_email: signerEmail || null,
+        p_notes: notes || null,
+      });
 
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(publicToken);
-      let query = supabase.from("proposals").select("id, reference, status");
-      if (isUuid) {
-        query = query.or(`id.eq.${publicToken},public_token.eq.${publicToken},reference.eq.${publicToken}`);
-      } else {
-        query = query.or(`public_token.eq.${publicToken},reference.eq.${publicToken}`);
-      }
-
-      const { data: propRow } = await query.maybeSingle();
-
-      if (propRow?.id) {
-        await supabase
-          .from("proposals")
-          .update({
-            status: "accepted",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", propRow.id);
-
-        await supabase
-          .from("proposal_acceptance")
-          .delete()
-          .eq("proposal_id", propRow.id);
-
-        await supabase
-          .from("proposal_acceptance")
-          .insert({
-            proposal_id: propRow.id,
-            customer_name: signerName || "Client",
-            customer_email: signerEmail || "",
-            status: "accepted",
-            accepted_at: new Date().toISOString(),
-            notes: notes || null,
-          });
-
+      if (!error && data && data.success === true) {
         return { success: true, error: null };
       }
+
+      if (data && data.success === false) {
+        return { success: false, error: data.error || "Proposal could not be accepted." };
+      }
+
+      if (error) {
+        console.warn("Supabase accept_public_proposal RPC error:", error.message);
+        return { success: false, error: error.message };
+      }
     } catch (e: any) {
-      console.warn("Supabase acceptPublicProposal direct update notice", e);
+      console.warn("Supabase acceptPublicProposal exception:", e);
+      return { success: false, error: e.message || "Proposal could not be accepted." };
     }
   }
 
-  return { success: true, error: null };
+  return { success: false, error: "Proposal could not be accepted." };
 }
 
 export async function deleteProposal(id: string): Promise<{ success: boolean; error: string | null }> {
