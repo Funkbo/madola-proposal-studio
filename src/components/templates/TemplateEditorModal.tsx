@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ProposalTemplate } from "@/types/template";
 import { ProposalBlock } from "@/types/block-proposal";
 import { createDefaultProposal } from "@/lib/block-defaults";
 import { uploadMediaAsset } from "@/lib/repositories/mediaRepository";
-import { MASTER_TEMPLATE_ID } from "@/lib/services/templateCache";
+import { MASTER_TEMPLATE_ID, getMasterTemplateBlocksFromDb } from "@/lib/services/templateCache";
 import { TEMPLATE_VARIABLES } from "@/lib/template-variables";
 import {
   X,
@@ -312,6 +312,28 @@ export function TemplateEditorModal({
     initialBlocks && initialBlocks.length > 0 ? initialBlocks : createDefaultProposal().blocks
   );
 
+  // Single source of truth: whenever the editor opens, load the persisted
+  // master template blocks from the database. This guarantees a fresh session
+  // (incognito / another browser) always edits the same saved configuration.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const dbBlocks = await getMasterTemplateBlocksFromDb();
+        if (cancelled) return;
+        if (dbBlocks && dbBlocks.length > 0) {
+          setBlocks(dbBlocks);
+        }
+      } catch (e) {
+        console.warn("Failed to load master template blocks from DB into editor", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
   const [activeTab, setActiveTab] = useState<"sections" | "images" | "details">("sections");
   const [selectedBlockId, setSelectedBlockId] = useState<string>(blocks[0]?.id || "");
   const [isSaving, setIsSaving] = useState(false);
@@ -471,15 +493,23 @@ export function TemplateEditorModal({
       // Persist master template blocks to DB so customer side (any browser) reflects changes
       try {
         const supabase = createClient();
-        await supabase
+        const { error: dbError } = await supabase
           .from("master_template_blocks")
           .upsert({
             id: MASTER_TEMPLATE_ID,
             blocks: blocks as any,
             updated_at: new Date().toISOString(),
           });
+
+        if (dbError) {
+          console.error("Failed to persist master template blocks to DB", dbError);
+          alert(`Template saved locally but FAILED to persist to the database: ${dbError.message}. Please check RLS permissions and try again.`);
+          return;
+        }
       } catch (dbErr) {
-        console.warn("Failed to persist master template blocks to DB", dbErr);
+        console.error("Failed to persist master template blocks to DB", dbErr);
+        alert("Template saved locally but FAILED to persist to the database. Please try again.");
+        return;
       }
 
       setSaveSuccess(true);

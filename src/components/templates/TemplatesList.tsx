@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ProposalTemplate } from "@/types/template";
 import { ProposalBlock } from "@/types/block-proposal";
 import { InteractiveProposalView } from "@/components/proposal/InteractiveProposalView";
 import { DEFAULT_MASTER_PROPOSAL } from "@/lib/repositories/interactiveProposalRepository";
+import { getMasterTemplateBlocksFromDb, MASTER_TEMPLATE_ID } from "@/lib/services/templateCache";
 import { TemplateEditorModal } from "./TemplateEditorModal";
 import { Edit3, Sparkles, ArrowRight, Image as ImageIcon, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
@@ -40,6 +41,7 @@ export function TemplatesList({ initialTemplates }: TemplatesListProps) {
               ...(cover?.data?.preparedBy || {}),
             },
             galleryImages: ourWork?.data?.images || DEFAULT_MASTER_PROPOSAL.galleryImages || [],
+            blocks: parsed.blocks || [],
           };
         }
       } catch (e) {
@@ -58,6 +60,56 @@ export function TemplatesList({ initialTemplates }: TemplatesListProps) {
       },
     };
   });
+
+  // Fetch the persisted master template from the database as the single source
+  // of truth. This guarantees fresh sessions (incognito / another browser) see
+  // the exact same saved template configuration as the editor.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const dbBlocks = await getMasterTemplateBlocksFromDb();
+        if (cancelled || !dbBlocks || dbBlocks.length === 0) return;
+
+        const cover = dbBlocks.find((b: any) => b.type === "cover");
+        const ourWork = dbBlocks.find((b: any) => b.type === "our_work");
+
+        setProposalState((prev: any) => ({
+          ...prev,
+          heroImage:
+            cover?.data?.heroImage || prev.heroImage || "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=1200&q=80",
+          preparedBy: {
+            ...prev.preparedBy,
+            ...(cover?.data?.preparedBy || {}),
+          },
+          galleryImages: ourWork?.data?.images || prev.galleryImages || [],
+          blocks: dbBlocks,
+        }));
+
+        // Keep the in-memory cache + localStorage in sync so the preview and
+        // editor both reflect the persisted configuration immediately.
+        if (typeof window !== "undefined") {
+          (window as any).__MADOLA_MASTER_TEMPLATE_CACHE__ = {
+            template: { id: MASTER_TEMPLATE_ID },
+            blocks: dbBlocks,
+          };
+          try {
+            localStorage.setItem(
+              `madola_template_${MASTER_TEMPLATE_ID}`,
+              JSON.stringify({ template: { id: MASTER_TEMPLATE_ID }, blocks: dbBlocks })
+            );
+          } catch (storageErr) {
+            console.warn("localStorage sync warning", storageErr);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to load master template blocks from DB", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const masterTemplate = templates[0] || {
     id: "template-madola-standard",
@@ -163,6 +215,7 @@ export function TemplatesList({ initialTemplates }: TemplatesListProps) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         template={masterTemplate}
+        initialBlocks={(proposalState as any).blocks}
         onSaveSuccess={handleSaveSuccess}
       />
     </div>
